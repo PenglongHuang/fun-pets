@@ -1,4 +1,4 @@
-# FunPets AI 桌面萌宠助手
+<h1 align="center">FunPets AI 桌面萌宠助手</h1>
 
 <p align="center">
   <strong>一只住在桌面上的 AI 萌宠 — 你的智能办公伙伴</strong>
@@ -293,7 +293,7 @@ limitations under the License.
 
 ---
 
-# FunPets - AI Desktop Pet Assistant
+<h1 align="center">FunPets - AI Desktop Pet Assistant</h1>
 
 <p align="center">
   <strong>A cute desktop AI pet — your intelligent work companion</strong>
