@@ -1,0 +1,63 @@
+export const store = {
+  get: <T = unknown>(key: string): Promise<T> =>
+    window.api.storeGet(key) as Promise<T>,
+  set: (key: string, value: unknown): Promise<void> =>
+    window.api.storeSet(key, value),
+  delete: (key: string): Promise<void> =>
+    window.api.storeDelete(key),
+}
+
+export const fs = {
+  readFile: (filePath: string): Promise<string> =>
+    window.api.fsReadFile(filePath),
+  writeFile: (filePath: string, content: string): Promise<void> =>
+    window.api.fsWriteFile(filePath, content),
+  deleteFile: (filePath: string): Promise<void> =>
+    window.api.fsDeleteFile(filePath),
+  readDir: (dirPath: string): Promise<string[]> =>
+    window.api.fsReadDir(dirPath),
+  exists: (filePath: string): Promise<boolean> =>
+    window.api.fsExists(filePath),
+  mkdir: (dirPath: string): Promise<void> =>
+    window.api.fsMkdir(dirPath),
+}
+
+export const windowApi = {
+  setSize: (width: number, height: number): Promise<void> =>
+    window.api.windowSetSize(width, height),
+  setPosition: (x: number, y: number): Promise<void> =>
+    window.api.windowSetPosition(x, y),
+  getDisplay: () =>
+    window.api.windowGetDisplay(),
+  getWindowBounds: () => window.api.windowGetBounds(),
+  setBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
+    window.api.windowSetBounds(bounds),
+  setIgnoreMouseEvents: (ignore: boolean) =>
+    window.api.windowSetIgnoreMouseEvents(ignore),
+  moveBy: (dx: number, dy: number) =>
+    window.api.windowMoveBy(dx, dy),
+  expandPanel: (petX?: number, petY?: number) =>
+    window.api.windowExpandPanel(petX, petY),
+  collapsePet: (petX?: number, petY?: number) =>
+    window.api.windowCollapsePet(petX, petY),
+}
+
+export const notify = {
+  show: (title: string, body: string): Promise<void> =>
+    window.api.notificationShow(title, body),
+}
+
+export const dialog = {
+  openDirectory: (): Promise<string | null> =>
+    window.api.dialogOpenDirectory(),
+}
+
+export const autolaunch = {
+  enable: (): Promise<void> => window.api.autolaunchEnable(),
+  disable: (): Promise<void> => window.api.autolaunchDisable(),
+}
+
+export const storeEvents = {
+  onDidChange: (callback: (key: string, newValue: unknown, oldValue: unknown) => void) =>
+    window.api.onStoreDidChange(callback),
+}

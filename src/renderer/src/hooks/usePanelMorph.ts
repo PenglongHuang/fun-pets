@@ -1,0 +1,32 @@
+import { useEffect, useRef } from 'react'
+import { usePetStore } from '@/stores/petStore'
+import { windowApi } from '@/lib/ipc'
+
+export function usePanelMorph() {
+  const windowMode = usePetStore((s) => s.windowMode)
+  const mounted = useRef(false)
+
+  useEffect(() => {
+    // Skip initial mount — main process already set up the window correctly
+    if (!mounted.current) {
+      mounted.current = true
+      return
+    }
+
+    if (windowMode === 'expanded') {
+      // Save current pet position, then expand window
+      windowApi.getWindowBounds().then((bounds) => {
+        usePetStore.getState().setPetPosition({ x: bounds.x, y: bounds.y })
+        windowApi.expandPanel(bounds.x, bounds.y).catch(() => {})
+      }).catch(() => {})
+      windowApi.setIgnoreMouseEvents(false).catch(() => {})
+    } else if (windowMode === 'pet') {
+      // Restore to saved pet position
+      const pos = usePetStore.getState().petPosition
+      windowApi.collapsePet(pos?.x, pos?.y).catch(() => {})
+      windowApi.setIgnoreMouseEvents(true).catch(() => {})
+    }
+  }, [windowMode])
+
+  return { windowMode }
+}

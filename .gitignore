@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+build/
+*.local
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Dev tool artifacts
+.superpowers/
+
+# User runtime data (created at first run by the app)
+notes/
+plans/
+
+# Project docs (keep locally, don't track to remote)
+docs/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage / testing
+coverage/
+.nyc_output/
+
+# Vite cache
+.vite/

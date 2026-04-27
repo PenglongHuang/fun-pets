@@ -1,0 +1,41 @@
+{
+  "name": "fun-pets",
+  "version": "0.1.0",
+  "description": "FunPets - 桌面萌宠办公助手",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "node launch.mjs",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "build:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^4.0.0",
+    "electron-store": "^10.0.0",
+    "lucide-react": "^1.11.0",
+    "marked": "^18.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@types/canvas-confetti": "^1.6.4",
+    "@types/marked": "^6.0.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "canvas-confetti": "^1.9.3",
+    "cross-env": "^10.1.0",
+    "electron": "^36.9.5",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^4.0.0",
+    "immer": "^10.1.1",
+    "lottie-web": "^5.12.2",
+    "motion": "^12.9.4",
+    "nanoid": "^5.1.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.8.3",
+    "zustand": "^5.0.5"
+  }
+}
