@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'motion/react'
 import { usePlanStore } from '@/stores/planStore'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
@@ -48,104 +49,142 @@ export default function CalendarView() {
   }
 
   return (
-    <div className="flex flex-col">
-      {/* Month header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
+    <div className="flex flex-col gap-3">
+      {/* Month nav */}
+      <div className="flex items-center justify-between">
+        <motion.button
           onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-tertiary hover:text-secondary hover:bg-[var(--bg-tertiary)] transition-colors"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+            background: 'transparent', border: 'none',
+            color: 'var(--text-tertiary)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          <ChevronLeft size={16} />
-        </button>
-        <span className="font-semibold" style={{ fontSize: 17, color: 'var(--text-primary)' }}>
+          <ChevronLeft size={15} />
+        </motion.button>
+        <span style={{ font: 'var(--text-headline)', color: 'var(--text-primary)', fontWeight: 600 }}>
           {year}年{month + 1}月
         </span>
-        <button
+        <motion.button
           onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-tertiary hover:text-secondary hover:bg-[var(--bg-tertiary)] transition-colors"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+            background: 'transparent', border: 'none',
+            color: 'var(--text-tertiary)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          <ChevronRight size={16} />
-        </button>
+          <ChevronRight size={15} />
+        </motion.button>
       </div>
 
-      {/* Legend */}
-      <div className="flex gap-4 justify-center mb-4">
-        {[{ color: '#60a5fa', label: '日计划' }, { color: '#c084fc', label: '周计划' }, { color: '#fbbf24', label: '月计划' }].map((l) => (
-          <div key={l.color} className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ background: l.color }} />
-            <span className="text-caption-2" style={{ fontSize: 11, color: 'var(--text-quaternary)' }}>{l.label}</span>
-          </div>
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 text-center">
+        {WEEKDAYS.map((w) => (
+          <span key={w} style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)', paddingBottom: 6 }}>
+            {w}
+          </span>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {WEEKDAYS.map((w) => (
-          <span key={w} className="pb-2" style={{ fontSize: 11, color: 'var(--text-quaternary)' }}>{w}</span>
-        ))}
+      <div className="grid grid-cols-7 gap-y-0.5 justify-items-center">
         {cells.map((cell, i) => {
           if (!cell.day) return <div key={`e${i}`} style={{ width: 32, height: 32 }} />
+
           const isToday = cell.dateStr === todayStr
           const isSelected = selectedDate === cell.dateStr
           const dayPlans = getPlansForDate(cell.dateStr)
           const uniqueColors = [...new Set(dayPlans.map((p) => p.color))]
+
           return (
-            <div
+            <motion.div
               key={cell.dateStr}
               onClick={() => setSelectedDate(cell.dateStr)}
-              className="cursor-pointer rounded-md transition-colors flex flex-col items-center justify-center"
+              whileTap={{ scale: 0.92 }}
               style={{
                 width: 32,
                 height: 32,
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
                 background: isToday
-                  ? 'rgba(10,132,255,0.15)'
+                  ? 'rgba(10,132,255,0.16)'
                   : isSelected
                     ? 'var(--bg-secondary)'
-                    : undefined,
-                color: isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)',
-                fontWeight: isToday ? 600 : undefined,
+                    : 'transparent',
+                transition: 'background 0.15s ease',
               }}
             >
-              <span style={{ fontSize: 12 }}>{cell.day}</span>
+              <span style={{
+                fontSize: 12,
+                fontWeight: isToday ? 600 : 400,
+                color: isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)',
+                lineHeight: 1,
+              }}>
+                {cell.day}
+              </span>
               {uniqueColors.length > 0 && (
-                <div className="flex justify-center gap-0.5 mt-0.5">
+                <div className="flex gap-0.5" style={{ marginTop: 2 }}>
                   {uniqueColors.slice(0, 3).map((c) => (
-                    <div key={c} className="w-1 h-1 rounded-full" style={{ background: c }} />
+                    <div key={c} style={{ width: 3, height: 3, borderRadius: '50%', background: c }} />
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           )
         })}
       </div>
 
       {/* Selected date plans */}
       {selectedDate && datePlans.length > 0 && (
-        <div className="mt-4 rounded-xl overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="px-4 pt-3 pb-1 text-caption-2" style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-secondary)',
+            overflow: 'hidden',
+            marginTop: 4,
+          }}
+        >
+          <div style={{ padding: '10px 14px 6px', font: 'var(--text-caption-2)', color: 'var(--text-tertiary)' }}>
             {selectedDate} 的计划
           </div>
           {datePlans.map((p) => (
             <div
               key={p.id}
               onClick={() => setActivePlan(p.id)}
-              className="group flex items-center gap-3 cursor-pointer transition-colors"
               style={{
-                minHeight: 48,
-                padding: '10px 16px',
-                borderBottom: '1px solid var(--separator)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                cursor: 'pointer',
+                borderTop: '1px solid var(--separator)',
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              <div style={{ width: 3, height: 24, borderRadius: 2, background: p.color, flexShrink: 0 }} />
-              <span className="text-subhead font-medium text-primary truncate flex-1" style={{ fontSize: 13 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+              <span className="truncate flex-1" style={{ font: 'var(--text-caption-1)', color: 'var(--text-primary)', fontWeight: 500 }}>
                 {p.title}
               </span>
-              <span className="text-caption-2 text-quaternary" style={{ fontSize: 11 }}>
+              <span style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)' }}>
                 {p.startDate}
               </span>
             </div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   )

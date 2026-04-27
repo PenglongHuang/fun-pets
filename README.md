@@ -1,21 +1,26 @@
-# FunPets 桌面萌宠办公助手
+# FunPets AI 桌面萌宠助手
 
 <p align="center">
-  <strong>一只住在桌面上的萌宠，陪你专注工作、管理计划、记录灵感</strong>
+  <strong>一只住在桌面上的 AI 萌宠 — 你的智能办公伙伴</strong>
 </p>
 
 <p align="center">
-  <a href="#功能特性">功能</a> &bull;
+  不仅能陪你专注工作、管理计划、记录灵感，未来还将掌控你的 Coding Agent、<br>
+  构建个人知识库、自动操作浏览器与桌面、接入即时通讯平台
+</p>
+
+<p align="center">
+  <a href="#当前功能-v01x">当前功能</a> &bull;
+  <a href="#ai-路线图">AI 路线图</a> &bull;
   <a href="#技术栈">技术栈</a> &bull;
   <a href="#快速开始">快速开始</a> &bull;
   <a href="#开发指南">开发</a> &bull;
-  <a href="#项目结构">结构</a> &bull;
   <a href="#license">License</a>
 </p>
 
 ---
 
-## 功能特性
+## 当前功能 (v0.1.x)
 
 ### 萌宠陪伴
 
@@ -56,6 +61,48 @@
 - 番茄钟参数调节（时长、休息间隔、轮次）
 - 开机自启动 / 关闭最小化到系统托盘
 - 数据导出与清理
+
+---
+
+## AI 路线图
+
+> FunPets 的终极目标是成为你的 AI 办公中枢 — 萌宠不仅是陪伴，更是你和 AI 能力之间的桥梁。
+
+### 1. Coding Agent 控制中枢
+
+将 FunPets 打造成统一操控 Coding Agent 的桌面入口：
+
+- 集成 [Claude Code](https://claude.ai/code)、[OpenAI Codex](https://github.com/openai/codex) 等主流 Coding Agent
+- 可视化任务编排：在 FunPets 面板中创建、分发、追踪 Agent 任务
+- 多 Agent 协同：并行调度多个 Agent 处理不同子任务
+- 实时进度面板：代码变更预览、执行日志、结果审查
+
+### 2. AI 知识库与记忆
+
+让萌宠拥有长期记忆，成为你的"第二大脑"：
+
+- 本地优先的向量知识库，自动索引项目代码、笔记、计划
+- 跨会话记忆：记住你的偏好、工作习惯、项目上下文
+- 语义检索：用自然语言查询历史笔记与代码片段
+- 智能关联：自动发现笔记间的隐含联系并推荐
+
+### 3. 自动化浏览器与桌面操作
+
+通过视觉理解驱动自动化，让萌宠替你完成重复操作：
+
+- 基于 [Midscene.js](https://midscenejs.com/) 的浏览器自动化：表单填写、数据抓取、页面操作
+- 桌面级自动化：启动应用、操作文件、跨窗口协作
+- 自然语言驱动：用中文描述任务，萌宠自动规划并执行操作步骤
+- 操作录制与回放：录制一次操作流程，后续一键重复执行
+
+### 4. 即时通讯平台接入
+
+让萌宠成为你的消息中枢：
+
+- 接入微信、钉钉、飞书、Telegram、Slack 等主流 IM
+- AI 智能摘要：自动总结未读消息，提炼关键信息
+- 上下文感知回复建议：根据当前任务和知识库内容推荐回复
+- 消息自动化：定时提醒、条件触发、群消息过滤与转发
 
 ---
 
@@ -246,24 +293,30 @@ limitations under the License.
 
 ---
 
-# FunPets - Desktop Pet Office Assistant
+# FunPets - AI Desktop Pet Assistant
 
 <p align="center">
-  <strong>A cute desktop pet that keeps you focused, organized, and inspired</strong>
+  <strong>A cute desktop AI pet — your intelligent work companion</strong>
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> &bull;
+  Not just a pet that keeps you focused and organized.<br>
+  It will soon control your Coding Agents, build a personal knowledge base,<br>
+  automate browser and desktop tasks, and integrate with your messaging apps.
+</p>
+
+<p align="center">
+  <a href="#current-features-v01x">Features</a> &bull;
+  <a href="#ai-roadmap">AI Roadmap</a> &bull;
   <a href="#tech-stack">Tech Stack</a> &bull;
   <a href="#getting-started">Getting Started</a> &bull;
   <a href="#development">Development</a> &bull;
-  <a href="#project-structure">Structure</a> &bull;
   <a href="#license">License</a>
 </p>
 
 ---
 
-## Features
+## Current Features (v0.1.x)
 
 ### Desktop Pet Companion
 
@@ -304,6 +357,48 @@ limitations under the License.
 - Adjustable pomodoro parameters (duration, breaks, rounds)
 - Auto-start on boot / minimize-to-tray on close
 - Data export and cleanup options
+
+---
+
+## AI Roadmap
+
+> FunPets aims to become your AI work hub. The pet is not just a companion — it's the bridge between you and AI capabilities.
+
+### 1. Coding Agent Control Hub
+
+Turn FunPets into a unified interface for controlling Coding Agents:
+
+- Integrate [Claude Code](https://claude.ai/code), [OpenAI Codex](https://github.com/openai/codex), and other popular Coding Agents
+- Visual task orchestration: create, dispatch, and track Agent tasks from the FunPets panel
+- Multi-agent coordination: dispatch multiple Agents in parallel for different subtasks
+- Real-time progress dashboard: code change previews, execution logs, result review
+
+### 2. AI Knowledge Base & Memory
+
+Give the pet long-term memory and make it your "second brain":
+
+- Local-first vector knowledge base, auto-indexing project code, notes, and plans
+- Cross-session memory: remembers your preferences, work habits, and project context
+- Semantic search: query historical notes and code snippets using natural language
+- Smart associations: automatically discover and recommend hidden connections between notes
+
+### 3. Automated Browser & Desktop Operations
+
+Drive automation through visual understanding — let the pet handle repetitive tasks:
+
+- Browser automation via [Midscene.js](https://midscenejs.com/): form filling, data scraping, page operations
+- Desktop-level automation: launch apps, manage files, cross-window collaboration
+- Natural language driven: describe tasks in plain language, the pet plans and executes automatically
+- Operation recording & replay: record a workflow once, replay it with one click
+
+### 4. Instant Messaging Integration
+
+Let the pet become your messaging hub:
+
+- Connect to WeChat, DingTalk, Feishu, Telegram, Slack, and other major IM platforms
+- AI-powered message summaries: auto-summarize unread messages and extract key information
+- Context-aware reply suggestions: recommend replies based on current tasks and knowledge base
+- Message automation: scheduled reminders, conditional triggers, group message filtering and forwarding
 
 ---
 

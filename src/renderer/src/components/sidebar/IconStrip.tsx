@@ -56,7 +56,7 @@ export default function IconStrip({ activePanel, onToggle }: IconStripProps) {
                   position: 'absolute',
                   left: -4,
                   top: '50%',
-                  translateY: '-50%',
+                  transform: 'translateY(-50%)',
                   width: 3,
                   height: 18,
                   borderRadius: 2,
