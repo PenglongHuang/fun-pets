@@ -20,6 +20,10 @@ export const fs = {
     window.api.fsExists(filePath),
   mkdir: (dirPath: string): Promise<void> =>
     window.api.fsMkdir(dirPath),
+  getStorageDir: (): Promise<string> =>
+    window.api.fsGetStorageDir(),
+  writeFileAbsolute: (filePath: string, content: string): Promise<void> =>
+    window.api.fsWriteFileAbsolute(filePath, content),
 }
 
 export const windowApi = {
@@ -50,6 +54,10 @@ export const notify = {
 export const dialog = {
   openDirectory: (): Promise<string | null> =>
     window.api.dialogOpenDirectory(),
+  showSaveDialog: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }): Promise<string | null> =>
+    window.api.dialogShowSaveDialog(options),
+  showMessageBox: (options: { type?: string; title?: string; message?: string; detail?: string; buttons?: string[]; defaultId?: number; cancelId?: number }): Promise<{ response: number }> =>
+    window.api.dialogShowMessageBox(options),
 }
 
 export const autolaunch = {

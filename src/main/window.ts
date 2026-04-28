@@ -4,8 +4,8 @@ import { join } from 'path'
 let mainWindow: BrowserWindow | null = null
 
 // Mode dimensions
-const PET_WIDTH = 140
-const PET_HEIGHT = 160
+const PET_WIDTH = 110
+const PET_HEIGHT = 120
 const EXPANDED_WIDTH = 480
 const EXPANDED_HEIGHT = 680
 

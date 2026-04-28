@@ -54,9 +54,8 @@ export default function IconStrip({ activePanel, onToggle }: IconStripProps) {
                 layoutId="nav-indicator"
                 style={{
                   position: 'absolute',
-                  left: -4,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
+                  left: 2,
+                  top: 12,
                   width: 3,
                   height: 18,
                   borderRadius: 2,

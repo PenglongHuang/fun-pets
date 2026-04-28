@@ -1,7 +1,9 @@
 import { useSettingsStore } from '@/stores/settingsStore'
-import { dialog } from '@/lib/ipc'
-import { FolderOpen, Timer, Zap, Database } from 'lucide-react'
-import { useState } from 'react'
+import { usePlanStore } from '@/stores/planStore'
+import { useNoteStore } from '@/stores/noteStore'
+import { dialog, fs, store } from '@/lib/ipc'
+import { FolderOpen, Timer, Zap, Database, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 
 /* ============================================
    iOS/macOS-style Toggle Switch
@@ -9,7 +11,7 @@ import { useState } from 'react'
 function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--separator)' }}>
-      <span className="text-body" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-caption-1" style={{ color: 'var(--text-primary)' }}>{label}</span>
       <button
         onClick={() => onChange(!value)}
         className="relative"
@@ -69,7 +71,7 @@ function SettingsGroup({
       {/* Group header */}
       <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
         <div style={{ color: iconColor }}>{icon}</div>
-        <span className="text-footnote font-semibold tracking-wide" style={{ color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
+        <span className="text-caption-1 font-semibold tracking-wide" style={{ color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
           {title}
         </span>
       </div>
@@ -96,7 +98,7 @@ function NumberInputRow({
 }) {
   return (
     <div className="flex items-center justify-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--separator)' }}>
-      <span className="text-body" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-caption-1" style={{ color: 'var(--text-primary)' }}>{label}</span>
       <div className="flex items-center">
         <input
           type="number"
@@ -109,7 +111,7 @@ function NumberInputRow({
             background: 'var(--bg-tertiary)',
             borderRadius: 'var(--radius-sm)',
             color: 'var(--text-primary)',
-            fontSize: 15,
+            fontSize: 13,
             textAlign: 'center',
             border: '1px solid transparent',
             outline: 'none',
@@ -171,12 +173,31 @@ const btnGhost: React.CSSProperties = {
    ============================================ */
 export default function SettingsPanel() {
   const storageDir = useSettingsStore((s) => s.storageDir)
+  const storageDirHistory = useSettingsStore((s) => s.storageDirHistory)
   const pomodoro = useSettingsStore((s) => s.pomodoro)
   const app = useSettingsStore((s) => s.app)
   const setStorageDir = useSettingsStore((s) => s.setStorageDir)
   const updatePomodoro = useSettingsStore((s) => s.updatePomodoro)
   const updateApp = useSettingsStore((s) => s.updateApp)
   const [saved, setSaved] = useState(false)
+  const [effectiveDir, setEffectiveDir] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const historyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fs.getStorageDir().then(setEffectiveDir)
+  }, [storageDir])
+
+  useEffect(() => {
+    if (!historyOpen) return
+    const handler = (e: MouseEvent) => {
+      if (historyRef.current && !historyRef.current.contains(e.target as Node)) {
+        setHistoryOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [historyOpen])
 
   const flashSave = () => {
     setSaved(true)
@@ -187,8 +208,80 @@ export default function SettingsPanel() {
     const dir = await dialog.openDirectory()
     if (dir) {
       await setStorageDir(dir)
+      usePlanStore.getState().load()
+      useNoteStore.getState().load()
       flashSave()
     }
+  }
+
+  const plans = usePlanStore((s) => s.plans)
+  const notes = useNoteStore((s) => s.notes)
+
+  const handleExportJSON = async () => {
+    try {
+      const filePath = await dialog.showSaveDialog({
+        title: '导出 JSON',
+        defaultPath: 'funpets-export.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      })
+      if (!filePath) return
+
+      const exportData: Record<string, unknown> = {}
+      const plansWithContent = []
+      for (const plan of plans) {
+        const content = await usePlanStore.getState().loadPlanContent(plan.id)
+        plansWithContent.push({ ...plan, content })
+      }
+      exportData.plans = plansWithContent
+
+      const notesWithContent = []
+      for (const note of notes) {
+        const content = await useNoteStore.getState().loadNoteContent(note.id)
+        notesWithContent.push({ ...note, content })
+      }
+      exportData.notes = notesWithContent
+
+      exportData.settings = { storageDir, pomodoro, app }
+      exportData.timer = await store.get('timer')
+      exportData.timerHistory = await store.get('timerHistory')
+
+      await fs.writeFileAbsolute(filePath, JSON.stringify(exportData, null, 2))
+      flashSave()
+    } catch (err) {
+      await dialog.showMessageBox({
+        type: 'error',
+        title: '导出失败',
+        message: 'JSON 导出过程中发生错误',
+        detail: String(err),
+      })
+    }
+  }
+
+  const handleClearData = async () => {
+    const result = await dialog.showMessageBox({
+      type: 'warning',
+      title: '清空数据',
+      message: '确定要清空所有数据吗？此操作不可撤销。',
+      detail: '将删除所有计划、笔记，并重置设置。',
+      buttons: ['取消', '清空数据'],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    if (result.response !== 1) return
+
+    for (const plan of plans) {
+      try { await fs.deleteFile(plan.filePath) } catch { /* already deleted */ }
+    }
+    await fs.writeFile('plans/index.json', '[]')
+
+    for (const note of notes) {
+      try { await fs.deleteFile(note.filePath) } catch { /* already deleted */ }
+    }
+    await fs.writeFile('notes/index.json', '[]')
+
+    usePlanStore.getState().load()
+    useNoteStore.getState().load()
+    flashSave()
   }
 
   return (
@@ -214,24 +307,110 @@ export default function SettingsPanel() {
         title="存储"
         iconColor="var(--accent-green)"
       >
-        <div className="" style={{ paddingBottom: 4 }}>
-          <div
-            className="flex items-center gap-2"
-            style={{
-              background: 'var(--bg-tertiary)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '8px 12px',
-              marginBottom: 10,
-            }}
-          >
-            <span
-              className="text-caption-1 font-mono truncate block"
-              style={{ color: 'var(--text-secondary)', flex: 1 }}
+        <div style={{ paddingBottom: 4 }}>
+          <div ref={historyRef} style={{ position: 'relative' }}>
+            <div
+              className="flex items-center gap-2"
+              onClick={() => storageDirHistory.length > 0 && setHistoryOpen(!historyOpen)}
+              style={{
+                background: 'var(--bg-tertiary)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 12px',
+                marginBottom: 10,
+                cursor: storageDirHistory.length > 0 ? 'pointer' : 'default',
+              }}
             >
-              {storageDir}
-            </span>
+              <span
+                className="text-caption-1 font-mono truncate block"
+                style={{ color: 'var(--text-secondary)', flex: 1 }}
+              >
+                {effectiveDir}
+              </span>
+              {!storageDir && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: 'var(--accent-green)',
+                    background: 'rgba(48,209,88,0.12)',
+                    padding: '2px 6px',
+                    borderRadius: 'var(--radius-full)',
+                    flexShrink: 0,
+                  }}
+                >
+                  默认
+                </span>
+              )}
+              {storageDirHistory.length > 0 && (
+                <ChevronDown
+                  size={14}
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    flexShrink: 0,
+                    transition: 'transform 0.2s ease',
+                    transform: historyOpen ? 'rotate(180deg)' : 'rotate(0)',
+                  }}
+                />
+              )}
+            </div>
+
+            {historyOpen && storageDirHistory.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 50,
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                border: '0.5px solid var(--separator)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                marginTop: -6,
+                overflow: 'hidden',
+              }}>
+                {storageDirHistory.map((dir) => (
+                  <div
+                    key={dir}
+                    onClick={async () => {
+                      await setStorageDir(dir)
+                      setHistoryOpen(false)
+                      usePlanStore.getState().load()
+                      useNoteStore.getState().load()
+                      flashSave()
+                    }}
+                    className="text-caption-1 font-mono truncate"
+                    style={{
+                      padding: '8px 12px',
+                      color: dir === storageDir ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                      background: dir === storageDir ? 'rgba(10,132,255,0.08)' : 'transparent',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = dir === storageDir ? 'rgba(10,132,255,0.08)' : 'transparent'
+                    }}
+                  >
+                    {dir}
+                  </div>
+                ))}
+                <div
+                  onClick={() => { setHistoryOpen(false); handlePickDir() }}
+                  style={{
+                    padding: '8px 12px',
+                    color: 'var(--accent-blue)',
+                    cursor: 'pointer',
+                    borderTop: '1px solid var(--separator)',
+                    fontSize: 12,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  选择其他目录...
+                </div>
+              </div>
+            )}
           </div>
-          <button onClick={handlePickDir} className="" style={btnPrimary}>
+          <button onClick={handlePickDir} style={btnPrimary}>
             选择目录
           </button>
         </div>
@@ -261,29 +440,12 @@ export default function SettingsPanel() {
           unit="分钟"
           onChange={(v) => { updatePomodoro({ longBreak: v }); flashSave() }}
         />
-        <div className="flex items-center justify-between" style={{ paddingTop: 10 }}>
-          <span className="text-body" style={{ color: 'var(--text-primary)' }}>轮次</span>
-          <div className="flex items-center">
-            <input
-              type="number"
-              value={pomodoro.roundsBeforeLongBreak}
-              onChange={(e) => { updatePomodoro({ roundsBeforeLongBreak: Number(e.target.value) }); flashSave() }}
-              className={undefined}
-              style={{
-                width: 64,
-                height: 32,
-                background: 'var(--bg-tertiary)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-                fontSize: 15,
-                textAlign: 'center',
-                border: '1px solid transparent',
-                outline: 'none',
-              }}
-            />
-            <span className="text-caption-1 ml-1.5" style={{ color: 'var(--text-tertiary)' }}>轮后长休息</span>
-          </div>
-        </div>
+        <NumberInputRow
+          label="轮次"
+          value={pomodoro.roundsBeforeLongBreak}
+          unit="轮后长休息"
+          onChange={(v) => { updatePomodoro({ roundsBeforeLongBreak: v }); flashSave() }}
+        />
       </SettingsGroup>
 
       {/* ===== App Behavior Group ===== */}
@@ -302,8 +464,8 @@ export default function SettingsPanel() {
           value={app.closeToTray}
           onChange={(v) => { updateApp({ closeToTray: v }); flashSave() }}
         />
-        <div className="flex items-center justify-between" style={{ padding: '10px 0' }}>
-          <span className="text-body" style={{ color: 'var(--text-primary)' }}>快速捕获快捷键</span>
+        <div className="flex items-center justify-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--separator)' }}>
+          <span className="text-caption-1" style={{ color: 'var(--text-primary)' }}>快速捕获快捷键</span>
           <span
             className="font-mono text-caption-1 px-2 py-1 inline-block"
             style={{
@@ -324,9 +486,8 @@ export default function SettingsPanel() {
         iconColor="var(--accent-purple)"
       >
         <div className="flex gap-2" style={{ paddingTop: 4 }}>
-          <button style={btnGhost}>导出 JSON</button>
-          <button style={btnGhost}>导出 Markdown</button>
-          <button style={btnDestructive}>清空数据</button>
+          <button onClick={handleExportJSON} style={btnGhost}>导出 JSON</button>
+          <button onClick={handleClearData} style={btnDestructive}>清空数据</button>
         </div>
       </SettingsGroup>
     </div>

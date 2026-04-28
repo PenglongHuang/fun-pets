@@ -11,6 +11,7 @@ export interface FunPetsAPI {
   fsReadDir: (dirPath: string) => Promise<string[]>
   fsExists: (filePath: string) => Promise<boolean>
   fsMkdir: (dirPath: string) => Promise<void>
+  fsGetStorageDir: () => Promise<string>
   windowSetSize: (width: number, height: number) => Promise<void>
   windowSetPosition: (x: number, y: number) => Promise<void>
   windowGetDisplay: () => Promise<{ width: number; height: number }>
@@ -18,6 +19,9 @@ export interface FunPetsAPI {
   windowSetBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
   notificationShow: (title: string, body: string) => Promise<void>
   dialogOpenDirectory: () => Promise<string | null>
+  dialogShowSaveDialog: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<string | null>
+  dialogShowMessageBox: (options: { type?: string; title?: string; message?: string; detail?: string; buttons?: string[]; defaultId?: number; cancelId?: number }) => Promise<{ response: number }>
+  fsWriteFileAbsolute: (filePath: string, content: string) => Promise<void>
   autolaunchEnable: () => Promise<void>
   autolaunchDisable: () => Promise<void>
   onQuickCapture: (callback: () => void) => () => void

@@ -17,6 +17,7 @@ interface AppSettings {
 
 interface SettingsState {
   storageDir: string
+  storageDirHistory: string[]
   pomodoro: PomodoroSettings
   app: AppSettings
   loaded: boolean
@@ -29,6 +30,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   immer((set, get) => ({
     storageDir: '',
+    storageDirHistory: [],
     pomodoro: { focusDuration: 25, shortBreak: 5, longBreak: 15, roundsBeforeLongBreak: 4 },
     app: { autoStart: false, closeToTray: true, quickCaptureHotkey: 'Ctrl+Shift+N' },
     loaded: false,
@@ -36,12 +38,14 @@ export const useSettingsStore = create<SettingsState>()(
     load: async () => {
       const settings = await store.get<{
         storageDir: string
+        storageDirHistory: string[]
         pomodoro: PomodoroSettings
         app: AppSettings
       }>('settings')
       if (settings) {
         set((s) => {
           s.storageDir = settings.storageDir || s.storageDir
+          s.storageDirHistory = settings.storageDirHistory || []
           if (settings.pomodoro) Object.assign(s.pomodoro, settings.pomodoro)
           if (settings.app) Object.assign(s.app, settings.app)
         })
@@ -50,8 +54,12 @@ export const useSettingsStore = create<SettingsState>()(
     },
 
     setStorageDir: async (dir) => {
-      set({ storageDir: dir })
+      set((s) => {
+        s.storageDir = dir
+        s.storageDirHistory = [dir, ...s.storageDirHistory.filter((d) => d !== dir)].slice(0, 5)
+      })
       await store.set('settings.storageDir', dir)
+      await store.set('settings.storageDirHistory', get().storageDirHistory)
     },
 
     updatePomodoro: async (updates) => {

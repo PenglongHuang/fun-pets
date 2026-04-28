@@ -19,8 +19,24 @@ function detectType(start: string, end: string | null): PlanType {
   return 'neutral'
 }
 
-function planColor(start: string, end: string | null): string {
+function planColor(start: string, end: string | null, planType?: PlanType): string {
+  if (planType) return COLOR_MAP[planType]
   return COLOR_MAP[detectType(start, end)]
+}
+
+function buildFilePath(id: string, slug: string, startDate: string, planType: PlanType, endDate: string | null): string {
+  const [year, month, day] = startDate.split('-')
+  switch (planType) {
+    case 'monthly':
+      return `plans/${year}-${month}/${id}-${slug}.md`
+    case 'weekly': {
+      const endDay = endDate ? endDate.split('-')[2] : day
+      return `plans/${year}-${month}/${day}-${endDay}/${id}-${slug}.md`
+    }
+    case 'daily':
+    default:
+      return `plans/${year}-${month}/${day}/${id}-${slug}.md`
+  }
 }
 
 interface PlanStore {
@@ -28,9 +44,10 @@ interface PlanStore {
   loaded: boolean
   activePlanId: string | null
   load: () => Promise<void>
-  createPlan: (title: string, startDate: string, endDate: string | null, content?: string) => Promise<Plan>
+  createPlan: (title: string, startDate: string, endDate: string | null, planType?: PlanType, content?: string) => Promise<Plan>
   updatePlan: (id: string, updates: { title?: string; startDate?: string; endDate?: string | null }) => Promise<void>
   deletePlan: (id: string) => Promise<void>
+  deletePlans: (ids: string[]) => Promise<void>
   savePlanContent: (id: string, content: string) => Promise<void>
   loadPlanContent: (id: string) => Promise<string>
   setActivePlan: (id: string | null) => void
@@ -47,9 +64,11 @@ export const usePlanStore = create<PlanStore>()(
       try {
         const raw = await fs.readFile('plans/index.json')
         const plans: Plan[] = JSON.parse(raw)
-        // Prune stale entries whose files were deleted externally
         const validPlans: Plan[] = []
         for (const plan of plans) {
+          if (!plan.planType) {
+            plan.planType = detectType(plan.startDate, plan.endDate)
+          }
           const exists = await fs.exists(plan.filePath).catch(() => false)
           if (exists) validPlans.push(plan)
         }
@@ -62,13 +81,14 @@ export const usePlanStore = create<PlanStore>()(
       }
     },
 
-    createPlan: async (title, startDate, endDate, content = '') => {
+    createPlan: async (title, startDate, endDate, planType, content = '') => {
       const id = nanoid(8)
       const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
-      const filePath = `plans/${id}-${slug}.md`
-      const color = planColor(startDate, endDate)
+      const resolvedType = planType || detectType(startDate, endDate)
+      const filePath = buildFilePath(id, slug, startDate, resolvedType, endDate)
+      const color = COLOR_MAP[resolvedType]
       const now = new Date().toISOString()
-      const plan: Plan = { id, title, startDate, endDate, filePath, color, createdAt: now, updatedAt: now }
+      const plan: Plan = { id, title, startDate, endDate, filePath, color, planType: resolvedType, createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
       set((s) => { s.plans.push(plan) })
@@ -83,7 +103,7 @@ export const usePlanStore = create<PlanStore>()(
         if (updates.title !== undefined) plan.title = updates.title
         if (updates.startDate !== undefined) plan.startDate = updates.startDate
         if (updates.endDate !== undefined) plan.endDate = updates.endDate
-        plan.color = planColor(plan.startDate, plan.endDate)
+        plan.color = planColor(plan.startDate, plan.endDate, plan.planType)
         plan.updatedAt = new Date().toISOString()
       })
       await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
@@ -92,9 +112,21 @@ export const usePlanStore = create<PlanStore>()(
     deletePlan: async (id) => {
       const plan = get().plans.find((p) => p.id === id)
       if (plan) {
-        try { await fs.deleteFile(plan.filePath) } catch {}
+        try { await fs.deleteFile(plan.filePath) } catch { /* already deleted */ }
       }
       set((s) => { s.plans = s.plans.filter((p) => p.id !== id) })
+      await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
+    },
+
+    deletePlans: async (ids) => {
+      const idSet = new Set(ids)
+      const plans = get().plans
+      for (const plan of plans) {
+        if (idSet.has(plan.id)) {
+          try { await fs.deleteFile(plan.filePath) } catch { /* already deleted */ }
+        }
+      }
+      set((s) => { s.plans = s.plans.filter((p) => !idSet.has(p.id)) })
       await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
     },
 
@@ -120,5 +152,5 @@ export const usePlanStore = create<PlanStore>()(
         return d >= start && d <= end
       })
     },
-  }))
+  })),
 )
