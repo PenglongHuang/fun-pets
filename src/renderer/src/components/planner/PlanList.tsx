@@ -1,171 +1,471 @@
+import { useState, useMemo } from 'react'
 import { usePlanStore } from '@/stores/planStore'
-import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { motion } from 'motion/react'
+import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
+import PlanCreateDialog from './PlanCreateDialog'
+import type { PlanType, Plan } from '@/types/plan'
+
+type TabKey = 'all' | PlanType
+
+const TABS: Array<{ key: TabKey; label: string; color: string }> = [
+  { key: 'all', label: '全部', color: 'var(--text-quaternary)' },
+  { key: 'daily', label: '日计划', color: '#60a5fa' },
+  { key: 'weekly', label: '周计划', color: '#c084fc' },
+  { key: 'monthly', label: '月计划', color: '#fbbf24' },
+]
+
+const TYPE_ICON: Record<string, React.ReactNode> = {}
+const TYPE_BADGE: Record<string, { bg: string; label: string }> = {
+  daily: { bg: 'rgba(96,165,250,0.12)', label: '日' },
+  weekly: { bg: 'rgba(192,132,252,0.12)', label: '周' },
+  monthly: { bg: 'rgba(251,191,36,0.12)', label: '月' },
+  neutral: { bg: 'rgba(148,163,184,0.12)', label: '其他' },
+}
+
+function planIcon(plan: Plan) {
+  const size = 14
+  const color = plan.color
+  switch (plan.planType) {
+    case 'weekly':
+      return <CalendarRange size={size} color={color} />
+    case 'monthly':
+      return <CalendarDays size={size} color={color} />
+    default:
+      return <Calendar size={size} color={color} />
+  }
+}
 
 export default function PlanList() {
   const plans = usePlanStore((s) => s.plans)
   const createPlan = usePlanStore((s) => s.createPlan)
   const deletePlan = usePlanStore((s) => s.deletePlan)
+  const deletePlans = usePlanStore((s) => s.deletePlans)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
   const activePlanId = usePlanStore((s) => s.activePlanId)
-  const [showNew, setShowNew] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = useState<TabKey>('all')
 
-  const handleCreate = async () => {
-    if (!newTitle.trim()) return
-    const today = new Date().toISOString().split('T')[0]
-    await createPlan(newTitle.trim(), today, null)
-    setNewTitle('')
-    setShowNew(false)
+  const filteredPlans = useMemo(() => {
+    if (activeTab === 'all') return plans
+    return plans.filter((p) => (p.planType || 'daily') === activeTab)
+  }, [plans, activeTab])
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: plans.length }
+    for (const p of plans) {
+      const t = p.planType || 'daily'
+      c[t] = (c[t] || 0) + 1
+    }
+    return c
+  }, [plans])
+
+  const visibleIds = useMemo(() => new Set(filteredPlans.map((p) => p.id)), [filteredPlans])
+  const allSelected = filteredPlans.length > 0 && filteredPlans.every((p) => selectedIds.has(p.id))
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of visibleIds) next.delete(id)
+        return next
+      })
+    } else {
+      setSelectedIds((prev) => new Set([...prev, ...visibleIds]))
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return
+    await deletePlans(Array.from(selectedIds))
+    setSelectedIds(new Set())
+    setEditMode(false)
+  }
+
+  const exitEditMode = () => {
+    setEditMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleCreateConfirm = async (title: string, startDate: string, endDate: string | null, planType: PlanType) => {
+    const plan = await createPlan(title, startDate, endDate, planType)
+    setActivePlan(plan.id)
+    setShowCreateDialog(false)
+  }
+
+  const handleSingleDelete = async (id: string) => {
+    await deletePlan(id)
+    if (selectedIds.has(id)) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      {plans.map((plan) => (
-        <motion.div
-          key={plan.id}
-          onClick={() => setActivePlan(plan.id)}
-          whileTap={{ scale: 0.98 }}
-          className="group cursor-pointer"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 14px',
-            borderRadius: 'var(--radius-md)',
-            background: activePlanId === plan.id ? 'var(--bg-secondary)' : 'transparent',
-            transition: 'background 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            if (activePlanId !== plan.id) e.currentTarget.style.background = 'var(--bg-tertiary)'
-          }}
-          onMouseLeave={(e) => {
-            if (activePlanId !== plan.id) e.currentTarget.style.background = 'transparent'
-          }}
-        >
-          {/* Color dot */}
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: plan.color, flexShrink: 0 }} />
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div style={{ font: 'var(--text-subhead)', color: 'var(--text-primary)', fontWeight: 500 }} className="truncate">
-              {plan.title}
+    <div className="flex flex-col" style={{ gap: 6 }}>
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        {editMode ? (
+          <>
+            <button
+              onClick={toggleSelectAll}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                color: 'var(--accent-blue)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                borderRadius: 'var(--radius-sm)',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(10,132,255,0.10)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+              <span style={{ fontSize: 12, fontWeight: 500 }}>全选</span>
+            </button>
+            <button
+              onClick={exitEditMode}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 12,
+                fontWeight: 500,
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-secondary)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              取消
+            </button>
+          </>
+        ) : (
+          <>
+            <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-tertiary)' }}>
+              {filteredPlans.length} 个计划
+            </span>
+            <div className="flex items-center gap-1">
+              {plans.length > 0 && (
+                <button
+                  onClick={() => setEditMode(true)}
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--text-tertiary)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'color 0.15s ease, background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--accent-blue)'
+                    e.currentTarget.style.background = 'rgba(10,132,255,0.10)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-tertiary)'
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  管理
+                </button>
+              )}
+              <motion.button
+                onClick={() => setShowCreateDialog(true)}
+                whileTap={{ scale: 0.92 }}
+                whileHover={{ scale: 1.04 }}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: 'var(--accent-blue)',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  boxShadow: '0 2px 8px rgba(10,132,255,0.25)',
+                }}
+              >
+                <Plus size={13} strokeWidth={2.5} />
+                新建
+              </motion.button>
             </div>
-            <div style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)', marginTop: 2 }}>
-              {plan.startDate}
-              {plan.endDate && plan.endDate !== plan.startDate ? ` → ${plan.endDate}` : ''}
-            </div>
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* Delete */}
-          <button
-            onClick={(e) => { e.stopPropagation(); deletePlan(plan.id) }}
-            style={{
-              opacity: 0,
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-quaternary)',
-              cursor: 'pointer',
-              padding: 4,
-              borderRadius: 'var(--radius-sm)',
-              transition: 'opacity 0.15s ease, color 0.15s ease',
-            }}
-            className="group-hover:opacity-100"
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-pink)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-quaternary)' }}
-          >
-            <Trash2 size={14} />
-          </button>
-        </motion.div>
-      ))}
+      {/* Tab bar */}
+      <div
+        className="flex shrink-0"
+        style={{
+          background: 'var(--bg-tertiary)',
+          borderRadius: 'var(--radius-full)',
+          padding: 2,
+          gap: 1,
+        }}
+      >
+        {TABS.map(({ key, label, color }) => {
+          const count = counts[key] || 0
+          if (key !== 'all' && count === 0) return null
+          const isActive = activeTab === key
+          return (
+            <motion.button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 11,
+                fontWeight: isActive ? 600 : 400,
+                background: isActive ? 'var(--bg-base)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'color 0.2s ease, background 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
+              }}
+            >
+              {key !== 'all' && (
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              )}
+              {label}
+            </motion.button>
+          )
+        })}
+      </div>
 
-      {/* New plan */}
-      {showNew ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 14px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          <input
-            autoFocus
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            placeholder="计划标题"
+      {/* Plan cards */}
+      <div className="flex flex-col" style={{ gap: 4 }}>
+        {filteredPlans.map((plan) => {
+          const badge = TYPE_BADGE[plan.planType || 'daily']
+          const isSelected = selectedIds.has(plan.id)
+          const isActive = !editMode && activePlanId === plan.id
+          return (
+            <motion.div
+              key={plan.id}
+              onClick={() => {
+                if (editMode) toggleSelect(plan.id)
+                else setActivePlan(plan.id)
+              }}
+              whileTap={{ scale: 0.98 }}
+              className="group"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: isActive
+                  ? 'rgba(255,255,255,0.06)'
+                  : isSelected
+                    ? 'rgba(10,132,255,0.06)'
+                    : 'var(--bg-secondary)',
+                border: isActive
+                  ? '0.5px solid rgba(255,255,255,0.10)'
+                  : isSelected
+                    ? '0.5px solid rgba(10,132,255,0.20)'
+                    : '0.5px solid rgba(255,255,255,0.04)',
+                cursor: 'pointer',
+                transition: 'background 0.2s ease, border-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!editMode && !isActive) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!editMode && !isActive) {
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
+                }
+              }}
+            >
+              {/* Left: checkbox or icon */}
+              {editMode ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(plan.id) }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
+                    flexShrink: 0,
+                    transition: 'color 0.15s ease',
+                  }}
+                >
+                  {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+              ) : (
+                <div style={{ flexShrink: 0, color: plan.color, display: 'flex' }}>
+                  {planIcon(plan)}
+                </div>
+              )}
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="truncate"
+                    style={{
+                      font: 'var(--text-caption-1)',
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {plan.title}
+                  </span>
+                  {badge && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: '1px 5px',
+                        borderRadius: 'var(--radius-full)',
+                        background: badge.bg,
+                        color: plan.color,
+                        flexShrink: 0,
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {badge.label}
+                    </span>
+                  )}
+                </div>
+                <div style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)', marginTop: 3 }}>
+                  {plan.startDate}
+                  {plan.endDate && plan.endDate !== plan.startDate ? ` → ${plan.endDate}` : ''}
+                </div>
+              </div>
+
+              {/* Delete */}
+              {!editMode && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSingleDelete(plan.id) }}
+                  style={{
+                    opacity: 0,
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-quaternary)',
+                    cursor: 'pointer',
+                    padding: 4,
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'opacity 0.15s ease, color 0.15s ease',
+                    flexShrink: 0,
+                  }}
+                  className="group-hover:opacity-100"
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-pink)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-quaternary)' }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </motion.div>
+          )
+        })}
+      </div>
+
+      {/* Empty state */}
+      <AnimatePresence mode="wait">
+        {filteredPlans.length === 0 && !editMode && (
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
             style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              font: 'var(--text-body)',
-              color: 'var(--text-primary)',
-            }}
-          />
-          <button
-            onClick={handleCreate}
-            style={{
-              font: 'var(--text-caption-1)',
-              fontWeight: 600,
-              color: 'var(--accent-blue)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px 8px',
+              textAlign: 'center',
+              padding: '32px 0 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            确定
-          </button>
-          <button
-            onClick={() => setShowNew(false)}
+            <Calendar size={28} style={{ color: 'var(--text-quaternary)', opacity: 0.4 }} strokeWidth={1.2} />
+            <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-quaternary)' }}>
+              {activeTab === 'all' ? '暂无计划' : '该类型暂无计划'}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Batch delete action bar */}
+      <AnimatePresence>
+        {editMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              font: 'var(--text-caption-1)',
-              color: 'var(--text-quaternary)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-secondary)',
+              border: '0.5px solid rgba(255,255,255,0.06)',
             }}
           >
-            取消
-          </button>
-        </div>
-      ) : (
-        <motion.button
-          onClick={() => setShowNew(true)}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '10px 0',
-            font: 'var(--text-caption-1)',
-            fontWeight: 500,
-            color: 'var(--text-quaternary)',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            borderRadius: 'var(--radius-md)',
-            transition: 'color 0.2s ease, background 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--accent-blue)'
-            e.currentTarget.style.background = 'rgba(10,132,255,0.08)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-quaternary)'
-            e.currentTarget.style.background = 'transparent'
-          }}
-        >
-          <Plus size={14} /> 新建计划
-        </motion.button>
+            <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              已选 {selectedIds.size} 项
+            </span>
+            <motion.button
+              onClick={handleBatchDelete}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                padding: '5px 16px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 12,
+                fontWeight: 600,
+                background: 'var(--accent-pink)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(255,55,95,0.20)',
+              }}
+            >
+              删除
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create dialog */}
+      {showCreateDialog && (
+        <PlanCreateDialog
+          onConfirm={handleCreateConfirm}
+          onCancel={() => setShowCreateDialog(false)}
+        />
       )}
     </div>
   )

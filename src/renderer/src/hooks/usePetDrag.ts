@@ -52,9 +52,11 @@ export function usePetDrag(
       if (inside && ignoreState.current) {
         ignoreState.current = false
         windowApi.setIgnoreMouseEvents(false).catch(() => {})
+        usePetStore.getState().setPetHovered(true)
       } else if (!inside && !ignoreState.current && !dragging.current) {
         ignoreState.current = true
         windowApi.setIgnoreMouseEvents(true).catch(() => {})
+        usePetStore.getState().setPetHovered(false)
       }
     }
 

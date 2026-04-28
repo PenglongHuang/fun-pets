@@ -13,12 +13,14 @@
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
     "electron-store": "^10.0.0",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^1.11.0",
     "marked": "^18.0.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.4",
     "@types/canvas-confetti": "^1.6.4",
+    "@types/highlight.js": "^9.12.4",
     "@types/marked": "^6.0.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

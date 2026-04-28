@@ -22,6 +22,7 @@ interface PetAvatarProps {
 export default function PetAvatar({ size = 100, onClick, className = '' }: PetAvatarProps) {
   const state = usePetStore((s) => s.state)
   const touch = usePetStore((s) => s.touch)
+  const petHovered = usePetStore((s) => s.petHovered)
   const [hoverAnim, setHoverAnim] = useState<HoverAnimation | null>(null)
   const [isBlinking, setIsBlinking] = useState(false)
   const lastHoverAnimRef = useRef<HoverAnimation | null>(null)
@@ -77,6 +78,21 @@ export default function PetAvatar({ size = 100, onClick, className = '' }: PetAv
   const handleMouseLeave = useCallback(() => {
     setHoverAnim(null)
   }, [])
+
+  // Store-based hover trigger for pet mode (React onMouseEnter doesn't fire
+  // when the window uses setIgnoreMouseEvents with forward mode)
+  useEffect(() => {
+    if (petHovered) {
+      const pick = pickRandomHover(lastHoverAnimRef.current)
+      lastHoverAnimRef.current = pick
+      if (pick === 'spin') {
+        spinDirectionRef.current = Math.random() > 0.5 ? 'spin' : 'spinCCW'
+      }
+      setHoverAnim(pick)
+    } else {
+      setHoverAnim(null)
+    }
+  }, [petHovered])
 
   const handleAnimComplete = useCallback(() => {
     setHoverAnim(null)
@@ -135,6 +151,8 @@ export default function PetAvatar({ size = 100, onClick, className = '' }: PetAv
           {renderEyes(displayState, isBlinking)}
 
           {hoverAnim === 'think' && <ThoughtBubble />}
+
+          {hoverAnim === 'heart' && <HeartOverlay />}
         </svg>
       </motion.div>
     </motion.div>
@@ -165,6 +183,23 @@ function ThoughtBubble() {
       >
         {'···'}
       </text>
+    </motion.g>
+  )
+}
+
+function HeartOverlay() {
+  return (
+    <motion.g
+      initial={{ opacity: 0, y: 10, scale: 0.5 }}
+      animate={{ opacity: [0, 1, 1, 0], y: [10, -5, -20, -35], scale: [0.5, 1, 1.1, 0.8] }}
+      transition={{ duration: 1, ease: 'easeInOut' }}
+      style={{ transformOrigin: '140px 40px' }}
+    >
+      <path
+        d="M140 48 C140 48, 130 38, 130 34 C130 30, 134 28, 137 28 C139 28, 140 30, 140 32 C140 30, 141 28, 143 28 C146 28, 150 30, 150 34 C150 38, 140 48, 140 48Z"
+        fill="#FF6B8A"
+        opacity={0.9}
+      />
     </motion.g>
   )
 }

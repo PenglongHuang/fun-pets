@@ -214,3 +214,217 @@ html, body, #root {
 .transition-spring {
   transition: all var(--duration-slow) var(--ease-spring);
 }
+
+/* === Markdown Content Styles === */
+.markdown-body {
+  color: var(--text-secondary);
+  font: var(--text-footnote);
+  line-height: 1.65;
+  word-wrap: break-word;
+}
+
+.markdown-body h1 {
+  font: var(--text-headline);
+  color: var(--text-primary);
+  margin: 16px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.markdown-body h2 {
+  font: var(--text-subhead);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 14px 0 6px;
+}
+
+.markdown-body h3 {
+  font: var(--text-footnote);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 12px 0 4px;
+}
+
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  font: var(--text-caption-1);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 10px 0 4px;
+}
+
+.markdown-body p {
+  margin: 6px 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+
+.markdown-body ul { list-style: disc; }
+.markdown-body ol { list-style: decimal; }
+
+.markdown-body li {
+  margin: 3px 0;
+}
+
+.markdown-body li > ul,
+.markdown-body li > ol {
+  margin: 2px 0;
+}
+
+/* Task lists */
+.markdown-body ul:has(> li > input[type="checkbox"]) {
+  list-style: none;
+  padding-left: 4px;
+}
+
+.markdown-body ul li input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--text-tertiary);
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 6px;
+  position: relative;
+  top: -1px;
+  cursor: default;
+  display: inline-block;
+}
+
+.markdown-body ul li input[type="checkbox"][checked] {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.markdown-body ul li input[type="checkbox"][checked]::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* Inline code */
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--accent-teal);
+}
+
+/* Code blocks */
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  border: 1px solid var(--separator);
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Blockquotes */
+.markdown-body blockquote {
+  border-left: 3px solid var(--accent-blue);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Tables */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 11px;
+}
+
+.markdown-body th {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid var(--separator);
+}
+
+.markdown-body td {
+  padding: 5px 10px;
+  border: 1px solid var(--separator);
+  color: var(--text-secondary);
+}
+
+.markdown-body tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Horizontal rules */
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--separator);
+  margin: 12px 0;
+}
+
+/* Links */
+.markdown-body a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+/* Images */
+.markdown-body img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+/* Strong / emphasis */
+.markdown-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.markdown-body em {
+  color: var(--text-secondary);
+}
+
+/* highlight.js token colors (Dracula-inspired) */
+.markdown-body pre code .hljs-keyword { color: #FF79C6; }
+.markdown-body pre code .hljs-string { color: #F1FA8C; }
+.markdown-body pre code .hljs-number { color: #BD93F9; }
+.markdown-body pre code .hljs-comment { color: rgba(255, 255, 255, 0.25); font-style: italic; }
+.markdown-body pre code .hljs-function { color: #50FA7B; }
+.markdown-body pre code .hljs-title { color: #50FA7B; }
+.markdown-body pre code .hljs-params { color: var(--text-secondary); }
+.markdown-body pre code .hljs-built_in { color: #8BE9FD; }
+.markdown-body pre code .hljs-literal { color: #BD93F9; }
+.markdown-body pre code .hljs-type { color: #8BE9FD; }
+.markdown-body pre code .hljs-attr { color: #50FA7B; }
+.markdown-body pre code .hljs-variable { color: #F8F8F2; }
+.markdown-body pre code .hljs-selector-tag { color: #FF79C6; }
+.markdown-body pre code .hljs-selector-class { color: #50FA7B; }
+.markdown-body pre code .hljs-symbol { color: #BD93F9; }
+.markdown-body pre code .hljs-meta { color: #F8F8F2; }

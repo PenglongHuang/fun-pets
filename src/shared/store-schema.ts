@@ -12,6 +12,7 @@ export interface StoreSchema {
       closeToTray: boolean
       quickCaptureHotkey: string
     }
+    storageDirHistory: string[]
   }
   timer: {
     status: 'idle' | 'running' | 'paused'
@@ -33,6 +34,7 @@ export const storeDefaults: StoreSchema = {
     storageDir: '',
     pomodoro: { focusDuration: 25, shortBreak: 5, longBreak: 15, roundsBeforeLongBreak: 4 },
     app: { autoStart: false, closeToTray: true, quickCaptureHotkey: 'Ctrl+Shift+N' },
+    storageDirHistory: [],
   },
   timer: { status: 'idle', phase: 'focus', remainingMs: 0, totalMs: 0, timestamp: '', round: 0 },
   timerHistory: [],

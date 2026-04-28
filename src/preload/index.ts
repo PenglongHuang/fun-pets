@@ -19,6 +19,7 @@ const api = {
   fsReadDir: (dirPath: string) => ipcRenderer.invoke(IPC.FS_READ_DIR, dirPath) as Promise<string[]>,
   fsExists: (filePath: string) => ipcRenderer.invoke(IPC.FS_EXISTS, filePath) as Promise<boolean>,
   fsMkdir: (dirPath: string) => ipcRenderer.invoke(IPC.FS_MKDIR, dirPath),
+  fsGetStorageDir: () => ipcRenderer.invoke(IPC.FS_GET_STORAGE_DIR) as Promise<string>,
 
   // Window
   windowSetSize: (width: number, height: number) => ipcRenderer.invoke(IPC.WINDOW_SET_SIZE, width, height),
@@ -41,6 +42,14 @@ const api = {
 
   // Dialog
   dialogOpenDirectory: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_DIRECTORY) as Promise<string | null>,
+  dialogShowSaveDialog: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+    ipcRenderer.invoke(IPC.DIALOG_SHOW_SAVE_DIALOG, options) as Promise<string | null>,
+  dialogShowMessageBox: (options: { type?: string; title?: string; message?: string; detail?: string; buttons?: string[]; defaultId?: number; cancelId?: number }) =>
+    ipcRenderer.invoke(IPC.DIALOG_SHOW_MESSAGE_BOX, options) as Promise<{ response: number }>,
+
+  // FS absolute
+  fsWriteFileAbsolute: (filePath: string, content: string) =>
+    ipcRenderer.invoke(IPC.FS_WRITE_FILE_ABSOLUTE, filePath, content) as Promise<void>,
 
   // Auto-launch
   autolaunchEnable: () => ipcRenderer.invoke(IPC.AUTOLAUNCH_ENABLE),

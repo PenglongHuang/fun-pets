@@ -13,8 +13,10 @@ interface NoteStore {
   load: () => Promise<void>
   createNote: (title: string, content?: string) => Promise<Note>
   deleteNote: (id: string) => Promise<void>
+  deleteNotes: (ids: string[]) => Promise<void>
   saveNoteContent: (id: string, content: string) => Promise<void>
   loadNoteContent: (id: string) => Promise<string>
+  updateNoteTags: (id: string, tags: string[]) => Promise<void>
   setActiveNote: (id: string | null) => void
 }
 
@@ -31,7 +33,7 @@ export const useNoteStore = create<NoteStore>()(
         const validNotes: Note[] = []
         for (const note of notes) {
           const exists = await fs.exists(note.filePath).catch(() => false)
-          if (exists) validNotes.push(note)
+          if (exists) validNotes.push({ ...note, tags: note.tags ?? [] })
         }
         if (validNotes.length !== notes.length) {
           await fs.writeFile('notes/index.json', JSON.stringify(validNotes, null, 2))
@@ -48,7 +50,7 @@ export const useNoteStore = create<NoteStore>()(
       const filePath = `notes/${id}-${slug}.md`
       const color = COLOR_PALETTE[get().notes.length % COLOR_PALETTE.length]
       const now = new Date().toISOString()
-      const note: Note = { id, title, filePath, color, createdAt: now, updatedAt: now }
+      const note: Note = { id, title, filePath, color, tags: [], createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
       set((s) => { s.notes.push(note) })
@@ -65,6 +67,18 @@ export const useNoteStore = create<NoteStore>()(
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
     },
 
+    deleteNotes: async (ids) => {
+      const idSet = new Set(ids)
+      const notes = get().notes
+      for (const note of notes) {
+        if (idSet.has(note.id)) {
+          try { await fs.deleteFile(note.filePath) } catch { /* already deleted */ }
+        }
+      }
+      set((s) => { s.notes = s.notes.filter((n) => !idSet.has(n.id)) })
+      await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
+    },
+
     saveNoteContent: async (id, content) => {
       const note = get().notes.find((n) => n.id === id)
       if (!note) return
@@ -75,6 +89,16 @@ export const useNoteStore = create<NoteStore>()(
       const note = get().notes.find((n) => n.id === id)
       if (!note) return ''
       return fs.readFile(note.filePath)
+    },
+
+    updateNoteTags: async (id, tags) => {
+      set((s) => {
+        const note = s.notes.find((n) => n.id === id)
+        if (!note) return
+        note.tags = tags
+        note.updatedAt = new Date().toISOString()
+      })
+      await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
     },
 
     setActiveNote: (id) => set({ activeNoteId: id }),

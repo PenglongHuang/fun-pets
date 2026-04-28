@@ -26,7 +26,7 @@ function QuickCapture() {
     const COLOR_PALETTE = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
     let notes: any[] = []
     try { notes = JSON.parse(await fs.readFile('notes/index.json')) } catch {}
-    notes.push({ id, title, filePath, color: COLOR_PALETTE[notes.length % 5], createdAt: now, updatedAt: now })
+    notes.push({ id, title, filePath, color: COLOR_PALETTE[notes.length % 5], tags: [], createdAt: now, updatedAt: now })
     await fs.writeFile('notes/index.json', JSON.stringify(notes, null, 2))
     setInput('')
     window.close()
@@ -84,10 +84,8 @@ export default function App() {
   useEffect(() => { loadSettings() }, [loadSettings])
 
   useEffect(() => {
-    if (storageDir) {
-      fs.mkdir('plans').catch(() => {})
-      fs.mkdir('notes').catch(() => {})
-    }
+    fs.mkdir('plans').catch(() => {})
+    fs.mkdir('notes').catch(() => {})
   }, [storageDir])
 
   // ESC handler — collapse to pet mode when in expanded mode

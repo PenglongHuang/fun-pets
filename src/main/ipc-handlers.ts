@@ -9,6 +9,12 @@ import { IPC } from '../shared/ipc-channels'
 export function registerIpcHandlers(): void {
   const store = getStore()
 
+  function getStorageDir(): string {
+    const configured = store.get('settings.storageDir') as string
+    if (configured) return configured
+    return join(app.getPath('userData'), 'funpets-workspace')
+  }
+
   // Store
   ipcMain.handle(IPC.STORE_GET, (_e, key: string) => store.get(key))
   ipcMain.handle(IPC.STORE_SET, (_e, key: string, value: unknown) => store.set(key, value))
@@ -26,24 +32,24 @@ export function registerIpcHandlers(): void {
 
   // FS (paths relative to storageDir)
   ipcMain.handle(IPC.FS_READ_FILE, async (_e, filePath: string) => {
-    const dir = store.get('settings.storageDir')
+    const dir = getStorageDir()
     return readFile(join(dir, filePath), 'utf-8')
   })
 
   ipcMain.handle(IPC.FS_WRITE_FILE, async (_e, filePath: string, content: string) => {
-    const dir = store.get('settings.storageDir')
+    const dir = getStorageDir()
     const fullPath = join(dir, filePath)
     await mkdir(dirname(fullPath), { recursive: true })
     return writeFile(fullPath, content, 'utf-8')
   })
 
   ipcMain.handle(IPC.FS_DELETE_FILE, async (_e, filePath: string) => {
-    const dir = store.get('settings.storageDir')
+    const dir = getStorageDir()
     return unlink(join(dir, filePath))
   })
 
   ipcMain.handle(IPC.FS_READ_DIR, async (_e, dirPath: string) => {
-    const base = store.get('settings.storageDir')
+    const base = getStorageDir()
     const fullDir = join(base, dirPath)
     try {
       const entries = await readdir(fullDir, { withFileTypes: true })
@@ -54,13 +60,17 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC.FS_EXISTS, (_e, filePath: string) => {
-    const dir = store.get('settings.storageDir')
+    const dir = getStorageDir()
     return existsSync(join(dir, filePath))
   })
 
   ipcMain.handle(IPC.FS_MKDIR, async (_e, dirPath: string) => {
-    const base = store.get('settings.storageDir')
+    const base = getStorageDir()
     return mkdir(join(base, dirPath), { recursive: true })
+  })
+
+  ipcMain.handle(IPC.FS_GET_STORAGE_DIR, () => {
+    return getStorageDir()
   })
 
   // Window
@@ -73,8 +83,15 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC.WINDOW_GET_DISPLAY, () => {
-    const display = screen.getPrimaryDisplay()
-    return { width: display.workAreaSize.width, height: display.workAreaSize.height }
+    const win = getMainWindow()
+    const display = win
+      ? screen.getDisplayNearestPoint({ x: win.getBounds().x, y: win.getBounds().y })
+      : screen.getPrimaryDisplay()
+    return {
+      width: display.workAreaSize.width,
+      height: display.workAreaSize.height,
+      bounds: { x: display.bounds.x, y: display.bounds.y },
+    }
   })
 
   ipcMain.handle(IPC.WINDOW_GET_BOUNDS, (_e) => {
@@ -109,10 +126,35 @@ export function registerIpcHandlers(): void {
     new Notification({ title, body }).show()
   })
 
-  // Dialog
+  // Dialog — temporarily lower alwaysOnTop so native dialogs appear in front
+  const withForegroundDialog = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const win = getMainWindow()
+    if (win) win.setAlwaysOnTop(false)
+    try {
+      return await fn()
+    } finally {
+      if (win) win.setAlwaysOnTop(true, 'floating')
+    }
+  }
+
   ipcMain.handle(IPC.DIALOG_OPEN_DIRECTORY, async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    const result = await withForegroundDialog(() => dialog.showOpenDialog({ properties: ['openDirectory'] }))
     return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle(IPC.DIALOG_SHOW_SAVE_DIALOG, async (_e, options: Electron.SaveDialogOptions) => {
+    const result = await withForegroundDialog(() => dialog.showSaveDialog(options))
+    return result.canceled ? null : result.filePath
+  })
+
+  ipcMain.handle(IPC.DIALOG_SHOW_MESSAGE_BOX, async (_e, options: Electron.MessageBoxOptions) => {
+    return withForegroundDialog(() => dialog.showMessageBox(options))
+  })
+
+  // FS absolute path write (for exports)
+  ipcMain.handle(IPC.FS_WRITE_FILE_ABSOLUTE, async (_e, filePath: string, content: string) => {
+    await mkdir(dirname(filePath), { recursive: true })
+    return writeFile(filePath, content, 'utf-8')
   })
 
   // Auto-launch

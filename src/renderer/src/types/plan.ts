@@ -5,6 +5,7 @@ export interface Plan {
   endDate: string | null
   filePath: string
   color: string
+  planType: PlanType
   createdAt: string
   updatedAt: string
 }
