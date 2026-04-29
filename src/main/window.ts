@@ -147,6 +147,12 @@ export function getExpandedDimensions() {
 let trackingInterval: ReturnType<typeof setInterval> | null = null
 let trackingHovering = false
 let trackingDragging = false
+let dragState: {
+  winStartX: number
+  winStartY: number
+  cursorStartX: number
+  cursorStartY: number
+} | null = null
 
 const HIT_RADIUS = 45
 
@@ -191,6 +197,33 @@ export function stopPetCursorTracking(): void {
   trackingDragging = false
 }
 
-export function setPetDragging(dragging: boolean): void {
+export function setPetDragging(dragging: boolean, cursorX?: number, cursorY?: number): void {
   trackingDragging = dragging
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  if (dragging) {
+    // Kill cursor tracking interval
+    if (trackingInterval) {
+      clearInterval(trackingInterval)
+      trackingInterval = null
+    }
+    mainWindow.setIgnoreMouseEvents(false)
+
+    // Store initial positions — window pos from getPosition(), cursor pos from renderer (both DIP)
+    const [winX, winY] = mainWindow.getPosition()
+    dragState = { winStartX: winX, winStartY: winY, cursorStartX: cursorX ?? 0, cursorStartY: cursorY ?? 0 }
+  } else {
+    dragState = null
+    trackingDragging = false
+    startPetCursorTracking(mainWindow)
+  }
+}
+
+/** Move window using renderer-reported cursor coordinates (both in DIP space) */
+export function movePetDrag(cursorX: number, cursorY: number): void {
+  if (!mainWindow || mainWindow.isDestroyed() || !dragState) return
+  mainWindow.setPosition(
+    dragState.winStartX + (cursorX - dragState.cursorStartX),
+    dragState.winStartY + (cursorY - dragState.cursorStartY)
+  )
 }

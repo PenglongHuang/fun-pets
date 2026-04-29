@@ -30,8 +30,9 @@ const api = {
     ipcRenderer.invoke(IPC.WINDOW_SET_BOUNDS, bounds),
   windowSetIgnoreMouseEvents: (ignore: boolean) =>
     ipcRenderer.invoke(IPC.WINDOW_SET_IGNORE_MOUSE_EVENTS, ignore),
-  windowMoveBy: (dx: number, dy: number) =>
-    ipcRenderer.invoke(IPC.WINDOW_MOVE_BY, dx, dy),
+  windowMoveBy: (cursorX: number, cursorY: number) => {
+    ipcRenderer.send(IPC.WINDOW_MOVE_BY, cursorX, cursorY)
+  },
   windowExpandPanel: (petX?: number, petY?: number) =>
     ipcRenderer.invoke(IPC.WINDOW_EXPAND_PANEL, petX, petY),
   windowCollapsePet: (petX?: number, petY?: number) =>
@@ -67,7 +68,8 @@ const api = {
   // Pet cursor tracking
   startPetTracking: () => ipcRenderer.invoke(IPC.PET_START_TRACKING),
   stopPetTracking: () => ipcRenderer.invoke(IPC.PET_STOP_TRACKING),
-  setPetDragging: (dragging: boolean) => ipcRenderer.invoke(IPC.PET_SET_DRAGGING, dragging),
+  setPetDragging: (dragging: boolean, cursorX?: number, cursorY?: number) =>
+    ipcRenderer.invoke(IPC.PET_SET_DRAGGING, dragging, cursorX, cursorY),
   onPetCursorHover: (callback: (hovered: boolean) => void) => {
     const handler = (_e: any, data: { hovered: boolean }) => callback(data.hovered)
     ipcRenderer.on(IPC.PET_CURSOR_HOVER, handler)

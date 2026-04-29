@@ -5,13 +5,19 @@ import { windowApi, petEvents } from '@/lib/ipc'
 const CLICK_THRESHOLD = 5
 
 export function usePetDrag(
-  petRef: React.RefObject<HTMLElement | null>,
+  _petRef: React.RefObject<HTMLElement | null>,
   options: { isPetMode: boolean; onClick?: () => void }
 ) {
-  const { isPetMode, onClick } = options
+  const { isPetMode } = options
+  const onClickRef = useRef(options.onClick)
+  onClickRef.current = options.onClick
+
   const dragging = useRef(false)
   const startScreen = useRef({ x: 0, y: 0 })
   const moved = useRef(false)
+  const pendingCursor = useRef({ x: 0, y: 0 })
+  const rafId = useRef(0)
+  const skipNext = useRef(false)
 
   // Start/stop main-process cursor tracking
   useEffect(() => {
@@ -34,8 +40,9 @@ export function usePetDrag(
     e.preventDefault()
     dragging.current = true
     moved.current = false
+    skipNext.current = false
     startScreen.current = { x: e.screenX, y: e.screenY }
-    windowApi.setPetDragging(true).catch(() => {})
+    windowApi.setPetDragging(true, e.screenX, e.screenY).catch(() => {})
   }, [isPetMode])
 
   useEffect(() => {
@@ -43,23 +50,43 @@ export function usePetDrag(
 
     const handleGlobalMove = (e: MouseEvent) => {
       if (!dragging.current) return
-      const dx = e.screenX - startScreen.current.x
-      const dy = e.screenY - startScreen.current.y
-      if (Math.abs(dx) > CLICK_THRESHOLD || Math.abs(dy) > CLICK_THRESHOLD) {
-        moved.current = true
+
+      // Skip synthetic mousemove triggered by window repositioning
+      if (skipNext.current) {
+        skipNext.current = false
+        return
+      }
+
+      if (!moved.current) {
+        const dx = e.screenX - startScreen.current.x
+        const dy = e.screenY - startScreen.current.y
+        if (Math.abs(dx) > CLICK_THRESHOLD || Math.abs(dy) > CLICK_THRESHOLD) {
+          moved.current = true
+        }
       }
       if (moved.current) {
-        windowApi.moveBy(dx, dy).catch(() => {})
-        startScreen.current = { x: e.screenX, y: e.screenY }
+        pendingCursor.current = { x: e.screenX, y: e.screenY }
+        if (!rafId.current) {
+          rafId.current = requestAnimationFrame(() => {
+            rafId.current = 0
+            skipNext.current = true
+            windowApi.moveBy(pendingCursor.current.x, pendingCursor.current.y)
+          })
+        }
       }
     }
 
-    const handleGlobalUp = (_e: MouseEvent) => {
+    const handleGlobalUp = () => {
       if (!dragging.current) return
       dragging.current = false
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current)
+        rafId.current = 0
+      }
+      skipNext.current = false
       windowApi.setPetDragging(false).catch(() => {})
       if (!moved.current) {
-        onClick?.()
+        onClickRef.current?.()
       }
     }
 
@@ -69,7 +96,7 @@ export function usePetDrag(
       window.removeEventListener('mousemove', handleGlobalMove)
       window.removeEventListener('mouseup', handleGlobalUp)
     }
-  }, [isPetMode, onClick])
+  }, [isPetMode])
 
   return { handleMouseDown }
 }

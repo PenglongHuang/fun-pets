@@ -38,8 +38,8 @@ export const windowApi = {
     window.api.windowSetBounds(bounds),
   setIgnoreMouseEvents: (ignore: boolean) =>
     window.api.windowSetIgnoreMouseEvents(ignore),
-  moveBy: (dx: number, dy: number) =>
-    window.api.windowMoveBy(dx, dy),
+  moveBy: (cursorX: number, cursorY: number) =>
+    window.api.windowMoveBy(cursorX, cursorY),
   expandPanel: (petX?: number, petY?: number) =>
     window.api.windowExpandPanel(petX, petY),
   collapsePet: (petX?: number, petY?: number) =>
@@ -50,8 +50,8 @@ export const windowApi = {
     window.api.startPetTracking(),
   stopPetTracking: (): Promise<void> =>
     window.api.stopPetTracking(),
-  setPetDragging: (dragging: boolean): Promise<void> =>
-    window.api.setPetDragging(dragging),
+  setPetDragging: (dragging: boolean, cursorX?: number, cursorY?: number): Promise<void> =>
+    window.api.setPetDragging(dragging, cursorX, cursorY),
 }
 
 export const notify = {

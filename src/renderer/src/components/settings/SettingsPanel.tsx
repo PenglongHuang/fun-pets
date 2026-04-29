@@ -376,7 +376,7 @@ export default function SettingsPanel() {
           pointerEvents: isDirty ? 'auto' : 'none',
         }}
       >
-        <span className="text-caption-1" style={{ color: 'var(--accent-orange)' }}>
+        <span className="text-caption-1" style={{ color: 'var(--accent-yellow)' }}>
           未保存的更改
         </span>
         <div className="flex gap-2">
@@ -517,7 +517,7 @@ export default function SettingsPanel() {
       <SettingsGroup
         icon={<Timer size={16} />}
         title="番茄钟"
-        iconColor="var(--accent-orange)"
+        iconColor="var(--accent-yellow)"
       >
         <NumberInputRow
           label="专注时长"
