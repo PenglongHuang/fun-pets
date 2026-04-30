@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react'
 import { usePlanStore } from '@/stores/planStore'
 import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange } from 'lucide-react'
+import TagFilterBar from '@/components/common/TagFilterBar'
+import { getAllTags } from '@/lib/tag-utils'
+import { useNoteStore } from '@/stores/noteStore'
 import { motion, AnimatePresence } from 'motion/react'
 import PlanCreateDialog from './PlanCreateDialog'
 import type { PlanType, Plan } from '@/types/plan'
@@ -42,16 +45,23 @@ export default function PlanList() {
   const deletePlans = usePlanStore((s) => s.deletePlans)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
   const activePlanId = usePlanStore((s) => s.activePlanId)
+  const renamePlanTag = usePlanStore((s) => s.renameTag)
+  const deletePlanTag = usePlanStore((s) => s.deleteTag)
+  const renameNoteTag = useNoteStore((s) => s.renameTag)
+  const deleteNoteTag = useNoteStore((s) => s.deleteTag)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<TabKey>('all')
+  const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single'; id: string } | { type: 'batch' } | null>(null)
 
   const filteredPlans = useMemo(() => {
-    if (activeTab === 'all') return plans
-    return plans.filter((p) => (p.planType || 'daily') === activeTab)
-  }, [plans, activeTab])
+    let result = plans
+    if (activeTab !== 'all') result = result.filter((p) => (p.planType || 'daily') === activeTab)
+    if (activeFilterTag !== null) result = result.filter((p) => (p.tags ?? []).includes(activeFilterTag))
+    return result
+  }, [plans, activeTab, activeFilterTag])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: plans.length }
@@ -61,6 +71,22 @@ export default function PlanList() {
     }
     return c
   }, [plans])
+
+  const tagFilterItems = useMemo(() => {
+    const allTags = getAllTags(plans)
+    return allTags.map((name) => ({
+      name,
+      count: plans.filter((p) => (p.tags ?? []).includes(name)).length,
+    }))
+  }, [plans])
+
+  const handleRenameTag = async (oldName: string, newName: string) => {
+    await Promise.all([renamePlanTag(oldName, newName), renameNoteTag(oldName, newName)])
+  }
+
+  const handleDeleteTag = async (tagName: string) => {
+    await Promise.all([deletePlanTag(tagName), deleteNoteTag(tagName)])
+  }
 
   const visibleIds = useMemo(() => new Set(filteredPlans.map((p) => p.id)), [filteredPlans])
   const allSelected = filteredPlans.length > 0 && filteredPlans.every((p) => selectedIds.has(p.id))
@@ -262,6 +288,17 @@ export default function PlanList() {
           )
         })}
       </div>
+
+      {/* Tag filter */}
+      {tagFilterItems.length > 0 && (
+        <TagFilterBar
+          tags={tagFilterItems}
+          activeTag={activeFilterTag}
+          onSelect={setActiveFilterTag}
+          onRenameTag={handleRenameTag}
+          onDeleteTag={handleDeleteTag}
+        />
+      )}
 
       {/* Plan cards */}
       <div className="flex flex-col" style={{ gap: 4 }}>

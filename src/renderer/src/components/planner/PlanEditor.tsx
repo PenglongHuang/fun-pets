@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { usePlanStore } from '@/stores/planStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
@@ -6,6 +6,8 @@ import { ArrowLeft, Pencil, Eye } from 'lucide-react'
 import { motion } from 'motion/react'
 import { extractH1Title } from '@/utils/markdown'
 import { useToast } from '@/components/common/Toast'
+import TagInput from '@/components/common/TagInput'
+import { getAllTags } from '@/lib/tag-utils'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -19,6 +21,8 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
   const savePlanContent = usePlanStore((s) => s.savePlanContent)
   const updatePlan = usePlanStore((s) => s.updatePlan)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
+  const updatePlanTags = usePlanStore((s) => s.updatePlanTags)
+  const plans = usePlanStore((s) => s.plans)
 
   const [content, setContent] = useState('')
   const [editMode, setEditMode] = useState<'edit' | 'preview'>('edit')
@@ -26,6 +30,7 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const contentRef = useRef(content)
   contentRef.current = content
+  const allTags = useMemo(() => getAllTags(plans), [plans])
 
   const { showToast, ToastContainer } = useToast()
 
@@ -151,6 +156,15 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
         <div style={{ width: 5, height: 5, borderRadius: '50%', background: plan.color }} />
         {plan.startDate}{plan.endDate && plan.endDate !== plan.startDate ? ` → ${plan.endDate}` : ''}
       </span>
+
+      {/* Tags */}
+      {plan.tags && (
+        <TagInput
+          tags={plan.tags}
+          allTags={allTags}
+          onUpdateTags={(tags) => updatePlanTags(plan.id, tags)}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 min-h-0">
