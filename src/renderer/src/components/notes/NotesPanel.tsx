@@ -6,7 +6,7 @@ import { Plus, Trash2, Eye, Edit3, FileText, CheckSquare, Square } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
 import TagInput from '@/components/common/TagInput'
-import { getAllTags } from '@/lib/tag-utils'
+import { getAllTags, getTagsWithCounts } from '@/lib/tag-utils'
 import { usePlanStore } from '@/stores/planStore'
 
 export default function NotesPanel() {
@@ -39,13 +39,7 @@ export default function NotesPanel() {
   const activeNote = notes.find((n) => n.id === activeNoteId)
 
   const allTags = useMemo(() => getAllTags(notes), [notes])
-  const tagFilterItems = useMemo(() =>
-    allTags.map((name) => ({
-      name,
-      count: notes.filter((n) => (n.tags ?? []).includes(name)).length,
-    })),
-    [allTags, notes],
-  )
+  const tagFilterItems = useMemo(() => getTagsWithCounts(notes), [notes])
   const filteredNotes = useMemo(() => {
     if (activeTag === null) return notes
     return notes.filter((n) => (n.tags ?? []).includes(activeTag))
@@ -126,11 +120,14 @@ export default function NotesPanel() {
       setEditMode(false)
     }
     setDeleteTarget(null)
+  }
+
+  useEffect(() => {
     if (activeTag !== null) {
       const remaining = notes.filter((n) => (n.tags ?? []).includes(activeTag))
       if (remaining.length === 0) setActiveTag(null)
     }
-  }
+  }, [notes, activeTag])
 
   const exitEditMode = () => {
     setEditMode(false)

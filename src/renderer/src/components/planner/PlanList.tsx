@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { usePlanStore } from '@/stores/planStore'
 import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange } from 'lucide-react'
 import TagFilterBar from '@/components/common/TagFilterBar'
-import { getAllTags } from '@/lib/tag-utils'
+import { getTagsWithCounts } from '@/lib/tag-utils'
 import { useNoteStore } from '@/stores/noteStore'
 import { motion, AnimatePresence } from 'motion/react'
 import PlanCreateDialog from './PlanCreateDialog'
@@ -71,13 +71,7 @@ export default function PlanList() {
     return c
   }, [plans])
 
-  const tagFilterItems = useMemo(() => {
-    const allTags = getAllTags(plans)
-    return allTags.map((name) => ({
-      name,
-      count: plans.filter((p) => (p.tags ?? []).includes(name)).length,
-    }))
-  }, [plans])
+  const tagFilterItems = useMemo(() => getTagsWithCounts(plans), [plans])
 
   const handleRenameTag = useCallback(async (oldName: string, newName: string) => {
     await Promise.all([renamePlanTag(oldName, newName), renameNoteTag(oldName, newName)])
@@ -86,6 +80,13 @@ export default function PlanList() {
   const handleDeleteTag = useCallback(async (tagName: string) => {
     await Promise.all([deletePlanTag(tagName), deleteNoteTag(tagName)])
   }, [deletePlanTag, deleteNoteTag])
+
+  useEffect(() => {
+    if (activeFilterTag !== null) {
+      const remaining = plans.filter((p) => (p.tags ?? []).includes(activeFilterTag))
+      if (remaining.length === 0) setActiveFilterTag(null)
+    }
+  }, [plans, activeFilterTag])
 
   const visibleIds = useMemo(() => new Set(filteredPlans.map((p) => p.id)), [filteredPlans])
   const allSelected = filteredPlans.length > 0 && filteredPlans.every((p) => selectedIds.has(p.id))

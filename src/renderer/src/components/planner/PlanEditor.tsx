@@ -144,13 +144,11 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
       </div>
 
       {/* Tags */}
-      {plan.tags && (
-        <TagInput
-          tags={plan.tags}
-          allTags={allTags}
-          onUpdateTags={(tags) => updatePlanTags(plan.id, tags)}
-        />
-      )}
+      <TagInput
+        tags={plan.tags ?? []}
+        allTags={allTags}
+        onUpdateTags={(tags) => updatePlanTags(plan.id, tags)}
+      />
 
       {/* Content */}
       <div className="flex-1 min-h-0">
