@@ -11,7 +11,7 @@ interface NoteStore {
   loaded: boolean
   activeNoteId: string | null
   load: () => Promise<void>
-  createNote: (title: string, content?: string) => Promise<Note>
+  createNote: (title: string, content?: string, tags?: string[]) => Promise<Note>
   deleteNote: (id: string) => Promise<void>
   deleteNotes: (ids: string[]) => Promise<void>
   saveNoteContent: (id: string, content: string) => Promise<void>
@@ -47,13 +47,13 @@ export const useNoteStore = create<NoteStore>()(
       }
     },
 
-    createNote: async (title, content = '') => {
+    createNote: async (title, content = '', tags) => {
       const id = nanoid(8)
       const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
       const filePath = `notes/${id}-${slug}.md`
       const color = COLOR_PALETTE[get().notes.length % COLOR_PALETTE.length]
       const now = new Date().toISOString()
-      const note: Note = { id, title, filePath, color, tags: [], createdAt: now, updatedAt: now }
+      const note: Note = { id, title, filePath, color, tags: tags ?? [], createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
       set((s) => { s.notes.push(note) })
