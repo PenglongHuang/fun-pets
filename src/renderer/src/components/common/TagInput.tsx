@@ -49,7 +49,7 @@ export default function TagInput({ tags, allTags, onUpdateTags, placeholder = 'æ
       style={{ position: 'relative', padding: '4px 0' }}
     >
       {tags.map((tag) => {
-        const color = getTagColor(tag)
+        const color = getTagColor()
         return (
           <span
             key={tag}
@@ -157,7 +157,7 @@ export default function TagInput({ tags, allTags, onUpdateTags, placeholder = 'æ
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: getTagColor(tag), flexShrink: 0 }} />
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: getTagColor(), flexShrink: 0 }} />
                 {tag}
               </button>
             ))}
