@@ -8,6 +8,8 @@ interface PetStore {
   touch: () => void
   windowMode: 'pet' | 'expanded'
   setWindowMode: (mode: 'pet' | 'expanded') => void
+  activePanel: 'planner' | 'timer' | 'notes' | 'settings'
+  setActivePanel: (panel: 'planner' | 'timer' | 'notes' | 'settings') => void
   petPosition: { x: number; y: number } | null
   setPetPosition: (pos: { x: number; y: number } | null) => void
   petHovered: boolean
@@ -21,6 +23,8 @@ export const usePetStore = create<PetStore>((set) => ({
   touch: () => set({ lastInteraction: Date.now() }),
   windowMode: 'pet',
   setWindowMode: (mode) => set({ windowMode: mode }),
+  activePanel: 'planner',
+  setActivePanel: (panel) => set({ activePanel: panel }),
   petPosition: null,
   setPetPosition: (pos) => set({ petPosition: pos }),
   petHovered: false,

@@ -24,32 +24,43 @@ export function useToast() {
       {toast && (
         <motion.div
           key={toast.id}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+          initial={{ opacity: 0, x: 6 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 6 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 12,
+            right: 12,
             display: 'flex',
-            justifyContent: 'center',
-            zIndex: 50,
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 12px',
+            zIndex: 10,
+            background: 'rgba(44, 44, 46, 0.65)',
+            backdropFilter: 'blur(20px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(150%)',
+            border: '0.5px solid rgba(255, 255, 255, 0.10)',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
             pointerEvents: 'none',
           }}
         >
-          <span
-            style={{
-              font: 'var(--text-caption-3)',
-              color: 'var(--accent-green)',
-              background: 'rgba(48, 209, 88, 0.08)',
-              border: '0.5px solid rgba(48, 209, 88, 0.15)',
-              padding: '3px 12px',
-              borderRadius: 'var(--radius-full)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
+          <div style={{
+            width: 16, height: 16,
+            borderRadius: '50%',
+            background: 'rgba(48, 209, 88, 0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+              <polyline points="2.5 6 5 8.5 9.5 3.5" stroke="var(--accent-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <span style={{
+            font: 'var(--text-caption-2)',
+            color: 'rgba(255, 255, 255, 0.75)',
+          }}>
             {toast.message}
           </span>
         </motion.div>

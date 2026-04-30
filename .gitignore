@@ -1,57 +1,48 @@
-# Dependencies
-node_modules/
 
-# Build outputs
-out/
-dist/
-build/
-*.local
-
-# TypeScript build cache
-*.tsbuildinfo
-
-# Environment & secrets
-.env
-.env.*
 !.env.example
-
+# Build outputs
+# Coverage / testing
+# Dependencies
+# Dev tool artifacts
+# Environment & secrets
 # IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
+# Logs
 # OS generated files
+# Project docs (keep locally, don't track to remote)
+# TypeScript build cache
+# User runtime data (created at first run by the app)
+# Vite cache
+*.local
+*.log
+*.swo
+*.swp
+*.tsbuildinfo
+*~
 .DS_Store
 .DS_Store?
-._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# Dev tool artifacts
+._*
+.env
+.env.*
+.idea/
+.nyc_output/
 .superpowers/
-
-# User runtime data (created at first run by the app)
-notes/
-plans/
-
-# Project docs (keep locally, don't track to remote)
+.superpowers/
+.vite/
+.vscode/
+Desktop.ini
+Thumbs.db
+build/
+coverage/
+dist/
 docs/
-
-# Logs
+ehthumbs.db
 logs/
-*.log
+node_modules/
+notes/
 npm-debug.log*
+out/
+plans/
 yarn-debug.log*
 yarn-error.log*
-
-# Coverage / testing
-coverage/
-.nyc_output/
-
-# Vite cache
-.vite/

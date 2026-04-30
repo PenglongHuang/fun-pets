@@ -17,7 +17,7 @@ export function usePetDrag(
   const moved = useRef(false)
   const pendingCursor = useRef({ x: 0, y: 0 })
   const rafId = useRef(0)
-  const skipNext = useRef(false)
+  const lastSent = useRef({ x: 0, y: 0 })
 
   // Start/stop main-process cursor tracking
   useEffect(() => {
@@ -40,7 +40,7 @@ export function usePetDrag(
     e.preventDefault()
     dragging.current = true
     moved.current = false
-    skipNext.current = false
+    lastSent.current = { x: e.screenX, y: e.screenY }
     startScreen.current = { x: e.screenX, y: e.screenY }
     windowApi.setPetDragging(true, e.screenX, e.screenY).catch(() => {})
   }, [isPetMode])
@@ -52,8 +52,8 @@ export function usePetDrag(
       if (!dragging.current) return
 
       // Skip synthetic mousemove triggered by window repositioning
-      if (skipNext.current) {
-        skipNext.current = false
+      // (screen coords match what we just sent via IPC)
+      if (e.screenX === lastSent.current.x && e.screenY === lastSent.current.y) {
         return
       }
 
@@ -69,7 +69,7 @@ export function usePetDrag(
         if (!rafId.current) {
           rafId.current = requestAnimationFrame(() => {
             rafId.current = 0
-            skipNext.current = true
+            lastSent.current = { ...pendingCursor.current }
             windowApi.moveBy(pendingCursor.current.x, pendingCursor.current.y)
           })
         }
@@ -83,7 +83,6 @@ export function usePetDrag(
         cancelAnimationFrame(rafId.current)
         rafId.current = 0
       }
-      skipNext.current = false
       windowApi.setPetDragging(false).catch(() => {})
       if (!moved.current) {
         onClickRef.current?.()

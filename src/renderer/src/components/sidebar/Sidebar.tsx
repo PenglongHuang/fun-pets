@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { X } from 'lucide-react'
 import PanelRouter from './PanelRouter'
 import IconStrip from './IconStrip'
@@ -7,7 +6,8 @@ import { usePetStore } from '@/stores/petStore'
 import { motion } from 'motion/react'
 
 export default function Sidebar() {
-  const [activePanel, setActivePanel] = useState<'planner' | 'timer' | 'notes' | 'settings'>('planner')
+  const activePanel = usePetStore((s) => s.activePanel)
+  const setActivePanel = usePetStore((s) => s.setActivePanel)
   const setWindowMode = usePetStore((s) => s.setWindowMode)
 
   return (
