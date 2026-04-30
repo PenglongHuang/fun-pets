@@ -52,6 +52,9 @@ interface PlanStore {
   loadPlanContent: (id: string) => Promise<string>
   setActivePlan: (id: string | null) => void
   getPlansForDate: (date: string) => Plan[]
+  updatePlanTags: (id: string, tags: string[]) => Promise<void>
+  renameTag: (oldName: string, newName: string) => Promise<void>
+  deleteTag: (tagName: string) => Promise<void>
 }
 
 export const usePlanStore = create<PlanStore>()(
@@ -70,6 +73,7 @@ export const usePlanStore = create<PlanStore>()(
             plan.planType = detectType(plan.startDate, plan.endDate)
           }
           const exists = await fs.exists(plan.filePath).catch(() => false)
+          if (!plan.tags) plan.tags = []
           if (exists) validPlans.push(plan)
         }
         if (validPlans.length !== plans.length) {
@@ -88,7 +92,7 @@ export const usePlanStore = create<PlanStore>()(
       const filePath = buildFilePath(id, slug, startDate, resolvedType, endDate)
       const color = COLOR_MAP[resolvedType]
       const now = new Date().toISOString()
-      const plan: Plan = { id, title, startDate, endDate, filePath, color, planType: resolvedType, createdAt: now, updatedAt: now }
+      const plan: Plan = { id, title, startDate, endDate, filePath, color, planType: resolvedType, tags: [], createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
       set((s) => { s.plans.push(plan) })
@@ -151,6 +155,42 @@ export const usePlanStore = create<PlanStore>()(
         const d = new Date(date).getTime()
         return d >= start && d <= end
       })
+    },
+
+    updatePlanTags: async (id, tags) => {
+      set((s) => {
+        const plan = s.plans.find((p) => p.id === id)
+        if (!plan) return
+        plan.tags = tags
+        plan.updatedAt = new Date().toISOString()
+      })
+      await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
+    },
+
+    renameTag: async (oldName, newName) => {
+      const trimmed = newName.trim()
+      if (!trimmed) return
+      set((s) => {
+        for (const plan of s.plans) {
+          if (plan.tags) {
+            plan.tags = plan.tags.map((t) => (t === oldName ? trimmed : t))
+            plan.updatedAt = new Date().toISOString()
+          }
+        }
+      })
+      await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
+    },
+
+    deleteTag: async (tagName) => {
+      set((s) => {
+        for (const plan of s.plans) {
+          if (plan.tags) {
+            plan.tags = plan.tags.filter((t) => t !== tagName)
+            plan.updatedAt = new Date().toISOString()
+          }
+        }
+      })
+      await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
     },
   })),
 )
