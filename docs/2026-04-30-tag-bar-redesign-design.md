@@ -44,7 +44,7 @@ Left/right arrow buttons for navigation (visible only when tags overflow), plus 
 - Count badge: padding 1px 6px, border-radius 6px, font-size 10px
 - Arrow buttons: 24x24px, border-radius 6px, border 1px solid #333, bg #252540
 
-**Count logic:** Each chip's count = number of items (plans or notes) with that tag. "全部" count = total items. Cross-store tag operations (rename/delete affecting both stores) preserved.
+**Count logic:** `TagFilterItem` already carries `count` in the data pipeline (`{ name: string; count: number }`), passed from both PlanList and NotesPanel consumers — only the rendering needs to change. "全部" count = total items. Cross-store tag operations (rename/delete affecting both stores) preserved.
 
 ### 2. Card Tag Display
 
@@ -65,7 +65,9 @@ Left/right arrow buttons for navigation (visible only when tags overflow), plus 
 
 Remove date display from:
 - `PlanList.tsx`: Remove the `plan.startDate` and `-> plan.endDate` text from plan cards
-- `PlanEditor.tsx`: Remove the date pill section (color dot + startDate -> endDate)
+- `PlanEditor.tsx`: Remove the date pill section (color dot + startDate -> endDate). The plan color dot in the title bar (not a date element) is retained.
+
+`CalendarView.tsx` retains its date display — dates are meaningful in the calendar context.
 
 This aligns with NotesPanel behavior where dates are not shown in the detail view.
 
