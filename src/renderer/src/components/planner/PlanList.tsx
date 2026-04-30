@@ -399,10 +399,33 @@ export default function PlanList() {
                     </span>
                   )}
                 </div>
-                <div style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)', marginTop: 3 }}>
-                  {plan.startDate}
-                  {plan.endDate && plan.endDate !== plan.startDate ? ` → ${plan.endDate}` : ''}
-                </div>
+                {(plan.tags ?? []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' as const }}>
+                    {(plan.tags ?? []).slice(0, 3).map((tag) => (
+                      <span key={tag} style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 500,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        color: '#8ab4f8',
+                        border: '1px solid rgba(138,180,248,0.2)',
+                      }}>
+                        <svg width="8" height="8" viewBox="0 0 16 16">
+                          <circle cx="8" cy="8" r="3" fill="#8ab4f8" />
+                        </svg>
+                        {tag}
+                      </span>
+                    ))}
+                    {(plan.tags ?? []).length > 3 && (
+                      <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
+                        +{(plan.tags ?? []).length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Delete */}
