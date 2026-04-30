@@ -6,7 +6,7 @@ import { Plus, Trash2, Eye, Edit3, FileText, CheckSquare, Square } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
 import TagInput from '@/components/common/TagInput'
-import { getTagColor, getAllTags } from '@/lib/tag-utils'
+import { getAllTags } from '@/lib/tag-utils'
 import { usePlanStore } from '@/stores/planStore'
 
 export default function NotesPanel() {
@@ -422,21 +422,24 @@ export default function NotesPanel() {
                 </div>
                 {(note.tags ?? []).length > 0 && (
                   <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' as const }}>
-                    {(note.tags ?? []).slice(0, 3).map((tag) => {
-                      const tc = getTagColor()
-                      return (
-                        <span key={tag} style={{
-                          fontSize: 10,
-                          fontWeight: 500,
-                          padding: '1px 6px',
-                          borderRadius: 'var(--radius-full)',
-                          background: `${tc}22`,
-                          color: tc,
-                        }}>
-                          {tag}
-                        </span>
-                      )
-                    })}
+                    {(note.tags ?? []).slice(0, 3).map((tag) => (
+                      <span key={tag} style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 500,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        color: '#8ab4f8',
+                        border: '1px solid rgba(138,180,248,0.2)',
+                      }}>
+                        <svg width="8" height="8" viewBox="0 0 16 16">
+                          <circle cx="8" cy="8" r="3" fill="#8ab4f8" />
+                        </svg>
+                        {tag}
+                      </span>
+                    ))}
                     {(note.tags ?? []).length > 3 && (
                       <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
                         +{(note.tags ?? []).length - 3}
