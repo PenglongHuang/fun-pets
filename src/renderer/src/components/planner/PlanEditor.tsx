@@ -143,20 +143,6 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
         </div>
       </div>
 
-      {/* Date pill */}
-      <span
-        style={{
-          font: 'var(--text-caption-2)',
-          color: 'var(--text-quaternary)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <div style={{ width: 5, height: 5, borderRadius: '50%', background: plan.color }} />
-        {plan.startDate}{plan.endDate && plan.endDate !== plan.startDate ? ` → ${plan.endDate}` : ''}
-      </span>
-
       {/* Tags */}
       {plan.tags && (
         <TagInput
