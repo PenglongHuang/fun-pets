@@ -1,4 +1,4 @@
-const TAG_COLOR = '#0A84FF'
+const TAG_COLOR = '#8ab4f8'
 
 export function getTagColor(): string {
   return TAG_COLOR
