@@ -293,6 +293,7 @@ export default function PlanList() {
         <TagFilterBar
           tags={tagFilterItems}
           activeTag={activeFilterTag}
+          totalItems={plans.length}
           onSelect={setActiveFilterTag}
           onRenameTag={handleRenameTag}
           onDeleteTag={handleDeleteTag}

@@ -335,6 +335,7 @@ export default function NotesPanel() {
         <TagFilterBar
           tags={tagFilterItems}
           activeTag={activeTag}
+          totalItems={notes.length}
           onSelect={setActiveTag}
           onRenameTag={handleRenameTag}
           onDeleteTag={handleDeleteTag}
