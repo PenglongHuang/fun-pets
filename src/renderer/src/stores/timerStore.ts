@@ -4,7 +4,7 @@ import { store, notify } from '@/lib/ipc'
 import { usePetStore } from './petStore'
 import { useSettingsStore } from './settingsStore'
 import { fireConfetti } from '@/lib/confetti'
-import type { TimerPhase, TimerStatus } from '@/types/timer'
+import type { TimerPhase, TimerStatus, TimerHistoryEntry } from '@/types/timer'
 
 interface TimerStore {
   status: TimerStatus
@@ -14,6 +14,11 @@ interface TimerStore {
   round: number
   todayCount: number
   todayMinutes: number
+  _persistVersion: number
+  _lastTickAt: number
+  pendingPlanId: string | null
+  history: TimerHistoryEntry[]
+  lastSelectedPlanId: string | null
   start: () => void
   pause: () => void
   resume: () => void
@@ -24,6 +29,8 @@ interface TimerStore {
   _persist: () => Promise<void>
   _loadPersisted: () => Promise<void>
   _loadHistory: () => Promise<void>
+  setPendingPlanId: (id: string | null) => void
+  startWithPlan: (planId: string) => void
 }
 
 export const useTimerStore = create<TimerStore>()(
@@ -35,6 +42,11 @@ export const useTimerStore = create<TimerStore>()(
     round: 0,
     todayCount: 0,
     todayMinutes: 0,
+    _persistVersion: 0,
+    _lastTickAt: 0,
+    pendingPlanId: null,
+    history: [],
+    lastSelectedPlanId: null,
 
     start: () => {
       const { phase } = get()
@@ -45,19 +57,25 @@ export const useTimerStore = create<TimerStore>()(
         longBreak: settings.longBreak * 60 * 1000,
       }
       const totalMs = durations[phase]
-      set({ status: 'running', totalMs, remainingMs: totalMs })
+      set((s) => {
+        s.status = 'running'
+        s.totalMs = totalMs
+        s.remainingMs = totalMs
+        s._lastTickAt = Date.now()
+        s._persistVersion++
+      })
       usePetStore.getState().setState('singleWink')
       get()._persist()
     },
 
     pause: () => {
-      set({ status: 'paused' })
+      set((s) => { s.status = 'paused'; s._persistVersion++ })
       usePetStore.getState().setState('smile')
       get()._persist()
     },
 
     resume: () => {
-      set({ status: 'running' })
+      set((s) => { s.status = 'running'; s._lastTickAt = Date.now(); s._persistVersion++ })
       usePetStore.getState().setState('singleWink')
       get()._persist()
     },
@@ -67,33 +85,42 @@ export const useTimerStore = create<TimerStore>()(
     },
 
     reset: () => {
-      set({ status: 'idle', remainingMs: 0, totalMs: 0 })
+      set((s) => { s.status = 'idle'; s.remainingMs = 0; s.totalMs = 0; s._persistVersion++ })
       usePetStore.getState().setState('smile')
       get()._persist()
     },
 
     tick: () => {
-      const { status, remainingMs } = get()
+      const { status, remainingMs, _lastTickAt } = get()
       if (status !== 'running') return
-      const next = remainingMs - 1000
+      const now = Date.now()
+      const elapsed = _lastTickAt ? now - _lastTickAt : 1000
+      const next = remainingMs - elapsed
+      set({ remainingMs: Math.max(next, 0), _lastTickAt: now })
       if (next <= 0) {
         get()._completePhase()
       } else {
-        set({ remainingMs: next })
-        if (next % 10000 === 0) get()._persist()
+        if (Math.floor(remainingMs / 10000) !== Math.floor(next / 10000)) {
+          get()._persist()
+        }
       }
     },
 
     _completePhase: () => {
-      const { phase, round } = get()
+      const { phase, round, totalMs, remainingMs, pendingPlanId } = get()
       const settings = useSettingsStore.getState().pomodoro
 
       if (phase === 'focus') {
-        const duration = settings.focusDuration
-        set((s) => { s.todayCount++; s.todayMinutes += duration })
+        const actualMinutes = Math.max(1, Math.round((totalMs - remainingMs) / 60000))
+        set((s) => { s.todayCount++; s.todayMinutes += actualMinutes })
         store.get<{ completedAt: string; phase: 'focus'; durationMinutes: number }[]>('timerHistory')
           .then((history = []) => {
-            history.push({ completedAt: new Date().toISOString(), phase: 'focus', durationMinutes: duration })
+            history.push({
+              completedAt: new Date().toISOString(),
+              phase: 'focus',
+              durationMinutes: actualMinutes,
+              ...(pendingPlanId ? { planId: pendingPlanId } : {}),
+            })
             return store.set('timerHistory', history)
           })
       }
@@ -107,13 +134,15 @@ export const useTimerStore = create<TimerStore>()(
         ? (newRound % settings.roundsBeforeLongBreak === 0 ? 'longBreak' : 'shortBreak')
         : 'focus'
 
-      const durations: Record<TimerPhase, number> = {
-        focus: settings.focusDuration * 60 * 1000,
-        shortBreak: settings.shortBreak * 60 * 1000,
-        longBreak: settings.longBreak * 60 * 1000,
-      }
-
-      set({ status: 'idle', phase: nextPhase, round: newRound, remainingMs: 0, totalMs: 0 })
+      set((s) => {
+        s.status = 'idle'
+        s.phase = nextPhase
+        s.round = newRound
+        s.remainingMs = 0
+        s.totalMs = 0
+        s.pendingPlanId = null
+        s._persistVersion++
+      })
       get()._persist()
 
       setTimeout(() => {
@@ -124,7 +153,9 @@ export const useTimerStore = create<TimerStore>()(
     },
 
     _persist: async () => {
+      const version = get()._persistVersion
       const { status, phase, remainingMs, totalMs, round } = get()
+      if (get()._persistVersion !== version) return
       await store.set('timer', {
         status, phase, remainingMs, totalMs, round,
         timestamp: new Date().toISOString(),
@@ -138,17 +169,27 @@ export const useTimerStore = create<TimerStore>()(
       }>('timer')
       if (!saved || saved.status === 'idle') return
 
-      const elapsed = Date.now() - new Date(saved.timestamp).getTime()
-      const remaining = saved.remainingMs - elapsed
+      let remaining: number
+      if (saved.status === 'running') {
+        const elapsed = Date.now() - new Date(saved.timestamp).getTime()
+        remaining = saved.remainingMs - elapsed
+      } else {
+        remaining = saved.remainingMs
+      }
 
       if (remaining <= 0) {
         if (saved.phase === 'focus') {
           const settings = useSettingsStore.getState().pomodoro
+          const newRound = saved.round + 1
+          const nextPhase: TimerPhase = newRound % settings.roundsBeforeLongBreak === 0
+            ? 'longBreak' : 'shortBreak'
           const history = await store.get<{ completedAt: string; phase: 'focus'; durationMinutes: number }[]>('timerHistory') || []
           history.push({ completedAt: new Date().toISOString(), phase: 'focus', durationMinutes: settings.focusDuration })
           await store.set('timerHistory', history)
+          await store.set('timer', { status: 'idle', phase: nextPhase, remainingMs: 0, totalMs: 0, timestamp: '', round: newRound })
+        } else {
+          await store.set('timer', { status: 'idle', phase: 'focus', remainingMs: 0, totalMs: 0, timestamp: '', round: saved.round })
         }
-        await store.set('timer', { status: 'idle', phase: 'focus', remainingMs: 0, totalMs: 0, timestamp: '', round: saved.round })
       } else {
         set({
           status: saved.status === 'running' ? 'running' : 'paused',
@@ -156,6 +197,7 @@ export const useTimerStore = create<TimerStore>()(
           remainingMs: remaining,
           totalMs: saved.totalMs,
           round: saved.round,
+          ...(saved.status === 'running' ? { _lastTickAt: Date.now() } : {}),
         })
         if (saved.status === 'running') {
           usePetStore.getState().setState('singleWink')
@@ -164,14 +206,22 @@ export const useTimerStore = create<TimerStore>()(
     },
 
     _loadHistory: async () => {
-      const history = await store.get<{ completedAt: string; durationMinutes: number }[]>('timerHistory')
+      const history = await store.get<TimerHistoryEntry[]>('timerHistory')
       if (!history) return
+      set({ history })
       const today = new Date().toISOString().split('T')[0]
       const todayEntries = history.filter((h) => h.completedAt.startsWith(today))
       set({
         todayCount: todayEntries.length,
         todayMinutes: todayEntries.reduce((sum, h) => sum + h.durationMinutes, 0),
       })
+    },
+
+    setPendingPlanId: (id) => set({ pendingPlanId: id }),
+
+    startWithPlan: (planId) => {
+      set({ pendingPlanId: planId, lastSelectedPlanId: planId })
+      get().start()
     },
   }))
 )
