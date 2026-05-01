@@ -2,7 +2,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { usePlanStore } from '@/stores/planStore'
 import { useNoteStore } from '@/stores/noteStore'
 import { dialog, fs, store } from '@/lib/ipc'
-import { FolderOpen, Timer, Zap, Database, ChevronDown } from 'lucide-react'
+import { FolderOpen, Timer, Zap, Database, Check } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/common/Toast'
 
@@ -357,7 +357,7 @@ export default function SettingsPanel() {
   }
 
   return (
-    <div className="flex flex-col" style={{ position: 'relative' }}>
+    <div className="flex flex-col h-full" style={{ position: 'relative' }}>
       <ToastContainer />
 
       {/* Unsaved changes bar + Save button */}
@@ -389,22 +389,35 @@ export default function SettingsPanel() {
         title="存储"
         iconColor="var(--accent-green)"
       >
-        <div style={{ paddingBottom: 4 }}>
-          <div ref={historyRef} style={{ position: 'relative' }}>
+        <div ref={historyRef} style={{ paddingBottom: 4 }}>
+          {/* Main row: icon + path + badge + change button */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 0',
+              borderBottom: '0.5px solid var(--separator)',
+            }}
+          >
             <div
-              className="flex items-center gap-2"
-              onClick={() => storageDirHistory.length > 0 && setHistoryOpen(!historyOpen)}
               style={{
-                background: 'var(--bg-tertiary)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '8px 12px',
-                marginBottom: 10,
-                cursor: storageDirHistory.length > 0 ? 'pointer' : 'default',
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'rgba(48,209,88,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
+              <FolderOpen size={14} style={{ color: '#30D158' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
-                className="text-caption-1 font-mono truncate block"
-                style={{ color: 'var(--text-secondary)', flex: 1 }}
+                className="text-caption-2 font-mono truncate"
+                style={{ color: 'rgba(235,235,245,0.50)' }}
               >
                 {effectiveDir}
               </span>
@@ -413,9 +426,9 @@ export default function SettingsPanel() {
                   style={{
                     fontSize: 10,
                     fontWeight: 500,
-                    color: 'var(--accent-green)',
+                    color: '#30D158',
                     background: 'rgba(48,209,88,0.12)',
-                    padding: '2px 6px',
+                    padding: '1px 6px',
                     borderRadius: 'var(--radius-full)',
                     flexShrink: 0,
                   }}
@@ -423,75 +436,113 @@ export default function SettingsPanel() {
                   默认
                 </span>
               )}
-              {storageDirHistory.length > 0 && (
-                <ChevronDown
-                  size={14}
+            </div>
+            <button
+              onClick={handlePickDir}
+              style={{
+                height: 26,
+                padding: '0 10px',
+                borderRadius: 7,
+                background: 'rgba(10,132,255,0.10)',
+                border: 'none',
+                color: '#0A84FF',
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(10,132,255,0.18)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(10,132,255,0.10)' }}
+            >
+              更换
+            </button>
+          </div>
+
+          {/* Collapsible history section */}
+          {storageDirHistory.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div
+                onClick={() => setHistoryOpen(!historyOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', padding: '4px 0' }}
+              >
+                <svg
+                  width="10" height="10" viewBox="0 0 24 24"
+                  fill="none" stroke="var(--text-quaternary)" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round"
                   style={{
-                    color: 'var(--text-tertiary)',
-                    flexShrink: 0,
                     transition: 'transform 0.2s ease',
                     transform: historyOpen ? 'rotate(180deg)' : 'rotate(0)',
                   }}
-                />
-              )}
-            </div>
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <span className="text-caption-2" style={{ color: 'var(--text-tertiary)' }}>
+                  最近使用 ({storageDirHistory.length})
+                </span>
+              </div>
 
-            {historyOpen && storageDirHistory.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                zIndex: 50,
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--radius-md)',
-                border: '0.5px solid var(--separator)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-                marginTop: -6,
-                overflow: 'hidden',
-              }}>
-                {storageDirHistory.map((dir) => (
-                  <div
-                    key={dir}
-                    onClick={async () => {
-                      await setStorageDir(dir)
-                      setHistoryOpen(false)
-                      usePlanStore.getState().load()
-                      useNoteStore.getState().load()
-                      showToast('已保存', 1500)
-                    }}
-                    className="text-caption-1 font-mono truncate hover-tertiary-bg"
-                    style={{
-                      padding: '8px 12px',
-                      color: dir === storageDir ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                      background: dir === storageDir ? 'rgba(10,132,255,0.08)' : 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    {dir}
-                  </div>
-                ))}
+              {historyOpen && (
                 <div
-                  onClick={() => { setHistoryOpen(false); handlePickDir() }}
-                  className="hover-tertiary-bg"
                   style={{
-                    padding: '8px 12px',
-                    color: 'var(--accent-blue)',
-                    cursor: 'pointer',
-                    borderTop: '1px solid var(--separator)',
-                    fontSize: 12,
-                    transition: 'background 0.15s ease',
+                    marginTop: 6,
+                    paddingLeft: 10,
+                    borderLeft: '1.5px solid var(--separator)',
                   }}
                 >
-                  选择其他目录...
+                  {storageDirHistory.map((dir) => {
+                    const isCurrent = dir === storageDir
+                    return (
+                      <div
+                        key={dir}
+                        onClick={() => {
+                          if (!isCurrent) {
+                            setStorageDir(dir)
+                            setHistoryOpen(false)
+                            usePlanStore.getState().load()
+                            useNoteStore.getState().load()
+                            showToast('已保存', 1500)
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 8px',
+                          margin: '2px -8px',
+                          borderRadius: 6,
+                          background: isCurrent ? 'rgba(10,132,255,0.06)' : 'transparent',
+                          cursor: isCurrent ? 'default' : 'pointer',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isCurrent) e.currentTarget.style.background = 'var(--bg-tertiary)'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isCurrent) e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        <span
+                          className="text-caption-2 font-mono truncate"
+                          style={{
+                            flex: 1,
+                            color: isCurrent ? '#0A84FF' : 'rgba(235,235,245,0.40)',
+                          }}
+                        >
+                          {dir}
+                        </span>
+                        {isCurrent ? (
+                          <Check size={12} style={{ color: '#0A84FF', flexShrink: 0 }} />
+                        ) : (
+                          <span style={{ fontSize: 9, color: '#0A84FF', flexShrink: 0 }}>切换</span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            )}
-          </div>
-          <button onClick={handlePickDir} style={btnPrimary}>
-            选择目录
-          </button>
+              )}
+            </div>
+          )}
         </div>
       </SettingsGroup>
 
