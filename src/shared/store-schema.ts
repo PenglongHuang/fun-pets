@@ -26,6 +26,7 @@ export interface StoreSchema {
     completedAt: string
     phase: 'focus'
     durationMinutes: number
+    planId?: string
   }>
 }
 
