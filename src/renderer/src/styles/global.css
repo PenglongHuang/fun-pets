@@ -158,15 +158,16 @@ html, body, #root {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
 }
 
-/* === Scrollbar (Apple-style thin) === */
-::-webkit-scrollbar { width: 6px; }
+/* === Scrollbar (macOS overlay-style) === */
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(10, 132, 255, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(10, 132, 255, 0.10);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(10, 132, 255, 0.35);
 }
 
 /* === Pet Animations (Redesigned — Expressive & Refined) === */
