@@ -24,6 +24,7 @@
 - 多面板同时显示（分栏）
 - 离散步点切换
 - 第三方响应式库引入
+- 窗口最大化（不设置 `maximizable`，用户通过拖拽调整尺寸）
 
 ## 设计详情
 
@@ -31,42 +32,66 @@
 
 **文件**: `src/main/window.ts`
 
-- expanded 模式：`resizable: true`
-- 最小尺寸：480×500
-- 窗口锚定行为：
-  - 宽度变化：右边缘对齐屏幕右边缘，左边缘移动
-  - 高度变化：垂直居中，上下等量扩展/收缩
-- expand 操作：恢复用户上次保存的宽高（非固定 480×680）
-- collapse 操作：记住当前 expanded 窗口尺寸，存入 electron-store
-- 窗口 resize 时：主进程监听 `will-resize` 或 `resize` 事件，重新计算位置保持锚定
+#### resizable 切换
 
-**尺寸持久化**:
-- 使用现有 electron-store 存储 expanded 模式的 `{ width, height }`
-- 首次使用（无存储值）回退到默认 480×680
+窗口创建时 `resizable: false`（pet 模式）。模式切换时动态修改：
+
+- `expandToPanelMode()`：调用 `mainWindow.setResizable(true)` + `mainWindow.setMinimumSize(480, 500)`
+- `collapseToPetMode()`：调用 `mainWindow.setResizable(false)` + 恢复 pet 模式尺寸
+
+#### 窗口锚定行为
+
+用户可以从任意边缘拖拽调整窗口。主进程通过 `resize` 事件后重新定位来保持锚定：
+
+- 监听 `mainWindow.on('resize', ...)` 事件
+- resize 回调中：获取当前 bounds，计算屏幕右边缘位置，将窗口 x 设为 `screenRight - width`，y 保持垂直居中（`screenCenterY - height/2`）
+- **注意**：这会导致轻微的视觉抖动（用户拖右边缘时窗口先跟手，再被弹回右边缘），属于已知权衡。如果抖动明显，后续可考虑限制只能从左侧和上下边缘拖拽（通过自定义 resize handle 实现）。
+
+#### 尺寸持久化
+
+- 在 `src/shared/store-schema.ts` 的 `StoreSchema` 中新增字段：`window.expandedSize: { width: number, height: number }`
+- 保存时机：仅 collapse 时保存（避免拖拽过程中频繁写磁盘）
+- 默认值：`{ width: 480, height: 680 }`
+- `expandToPanelMode()` 读取存储值恢复尺寸
+
+#### 多显示器
+
+窗口 resize 锚定逻辑使用 `getTargetDisplay()` 获取当前显示器，锚定计算基于当前显示器的 workArea，已在现有代码中处理。
 
 ### 2. 内容区响应式基础
 
-**容器查询上下文**:
-- 在 `Sidebar.tsx` 内容区外层设置 `container-type: inline-size`
-- 子组件使用 `cqw`（容器宽度百分比）单位做响应式尺寸
+#### 容器查询上下文
 
-**字体缩放规则**:
-| 元素 | 当前值 | 响应式值 |
-|------|--------|----------|
-| 面板标题 | 22px | `clamp(22px, 5cqw, 34px)` |
-| 正文 | 15px | 15px（不变） |
-| 次要文本/标签 | 12px | `clamp(12px, 3cqw, 14px)` |
+**位置**：在 `PanelRouter.tsx` 的外层 `div`（当前有 `className="flex-1 overflow-hidden" style={{ minWidth: 280 }}`）上设置 `container-type: inline-size`。
 
-**间距缩放规则**:
+**注意**：不能设在 `Sidebar.tsx` 的根元素上，因为根元素包含 72px 图标栏，会导致 cqw 单位计算不正确。容器查询上下文只应包含面板内容区。
+
+**现有 min-width**：`Sidebar.tsx` 的 `minWidth: 360` 和 `PanelRouter.tsx` 的 `minWidth: 280` 保持不变作为 CSS 安全网。在 480px 最小窗口宽度下，内容区约 407px（480 - 72 - 1），两个 min-width 都不会触发。
+
+#### 字体缩放规则
+
+缩放目标是让标题在大宽度下更有气势，正文保持可读性。
+
+| 元素 | 当前值 | 响应式值 | 说明 |
+|------|--------|----------|------|
+| 面板标题 | 22px | `clamp(22px, 4.5cqw, 32px)` | 内容区 ~407px 时 ≈18px（clamp 到 22），~1200px 时 ≈54px（clamp 到 32） |
+| 正文 | 15px | 15px（不变） | 正文尺寸固定，保证阅读舒适 |
+| 次要文本/标签 | 12px | `clamp(12px, 2.5cqw, 15px)` | 轻微增长，大宽度时更易读 |
+
+注意：clamp 的中间值（cqw 百分比）仅在特定宽度范围内生效，超出范围后被 min/max 截断。这意味着缩放是渐进的、有限的，避免极端尺寸。
+
+#### 间距缩放规则
+
 | 属性 | 当前值 | 响应式值 |
 |------|--------|----------|
 | GlassPanel 内边距 | 20px | `clamp(16px, 4cqw, 32px)` |
 | 卡片间距 | 8px | `clamp(8px, 2cqw, 16px)` |
 
-**多列排列**:
+#### 多列排列
+
 - 使用 `display: grid; grid-template-columns: repeat(auto-fill, minmax(Xpx, 1fr))` 实现自动换行
 - 各面板设定不同的卡片最小宽度
-- 图标栏（72px）保持固定宽度，不参与缩放
+- 图标栏（72px）保持固定宽度，不参与缩放。这是有意的设计决策：图标栏始终是极简导航条，即使窗口很宽也保持紧凑，与内容区的扩展形成对比。
 
 ### 3. 各面板适配策略
 
@@ -81,7 +106,9 @@
 - 历史记录：如有列表项，同样 grid auto-fill 换行
 
 #### 笔记面板（NotesPanel）
-- 笔记列表：`grid auto-fill, minmax(180px, 1fr)`
+- 当前笔记以纵向列表形式展示（非卡片网格），每项包含标题、内容预览、标签等
+- 宽度增大时列表项自然加宽，不强制转为网格卡片（列表形式更适合笔记的快速浏览）
+- 如果未来有卡片视图需求，可后续迭代
 - 笔记编辑区：宽度自然加宽，保持阅读体验
 - 标签栏：保持单行横排
 
@@ -95,16 +122,17 @@
 
 ### 4. 过渡动画
 
-- Grid 布局重排：`transition: all 0.3s ease`
-- 字体和间距 clamp() 变化：天然连续，无需额外处理
-- 不添加 resize 动画延迟，避免拖拽时「跟手慢」
+- **不使用** `transition: all 0.3s ease`，因为对 grid 布局重排施加 transition 会导致拖拽过程中严重卡顿
+- Grid auto-fill 的列数变化（换行/重排）不添加过渡动画，让浏览器自然重排
+- 字体和间距的 clamp() 变化天然连续，无需额外处理
+- 如果需要，可为卡片出现/消失添加 `opacity` 过渡（不影响布局性能）
 
 ### 5. 技术实现路径
 
-1. **渲染进程**：Sidebar.tsx 内容区加 `container-type: inline-size`，子组件用 cqw 单位
-2. **Grid auto-fill**：各面板列表区域使用 CSS Grid auto-fill
-3. **主进程**：监听窗口 resize，保持右边缘锚定和垂直居中
-4. **尺寸持久化**：electron-store 保存 expanded 模式宽高
+1. **渲染进程**：`PanelRouter.tsx` 外层 div 加 `container-type: inline-size`，子组件用 cqw 单位
+2. **Grid auto-fill**：计划面板的列表区域使用 CSS Grid auto-fill（笔记保持列表形式）
+3. **主进程**：监听窗口 `resize` 事件，重新计算位置保持锚定和居中
+4. **尺寸持久化**：StoreSchema 新增 `window.expandedSize`，collapse 时保存
 
 ### 6. 不引入的技术
 
@@ -114,12 +142,13 @@
 
 ## 涉及文件
 
-- `src/main/window.ts` — 窗口 resizable、锚定逻辑、尺寸持久化
-- `src/renderer/src/components/sidebar/Sidebar.tsx` — 容器查询上下文
+- `src/main/window.ts` — 窗口 resizable 切换、resize 锚定、尺寸持久化
+- `src/shared/store-schema.ts` — 新增 `window.expandedSize` 字段
+- `src/renderer/src/components/sidebar/PanelRouter.tsx` — 容器查询上下文
 - `src/renderer/src/components/common/GlassPanel.tsx` — 响应式内边距
 - `src/renderer/src/components/planner/PlannerPanel.tsx` — 计划卡片 grid
 - `src/renderer/src/components/timer/TimerPanel.tsx` — 计时器居中
-- `src/renderer/src/components/notes/NotesPanel.tsx` — 笔记卡片 grid
-- `src/renderer/src/components/settings/SettingsPanel.tsx` — 单列居中
+- `src/renderer/src/components/notes/NotesPanel.tsx` — 列表项自适应宽度
+- `src/renderer/src/components/settings/SettingsPanel.tsx` — 单列居中 max-width
 - `src/renderer/src/styles/global.css` — 响应式 CSS 变量（如需要）
 - `src/preload/index.ts` — 新增 IPC 暴露（如需要尺寸存取）
