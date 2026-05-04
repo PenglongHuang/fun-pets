@@ -9,7 +9,7 @@ export default function GlassPanel({ children }: GlassPanelProps) {
     <div className="h-full flex flex-col overflow-hidden" style={{ borderRadius: 'var(--radius-lg)' }}>
       <div
         className="flex-1 overflow-y-auto"
-        style={{ padding: 20 }}
+        style={{ padding: 'clamp(18px, 4.5cqw, 32px)' }}
       >
         {children}
       </div>

@@ -23,6 +23,10 @@
   --text-caption-2: 400 11px / 1.3 var(--font-family);
   --text-caption-3: 500 10px / 1.25 var(--font-family);
 
+  /* --- Responsive Typography (container query units) --- */
+  --text-title-2-responsive: 600 clamp(22px, 4.5cqw, 32px) / 1.35 var(--font-family);
+  --text-caption-1-responsive: 400 clamp(12px, 2.5cqw, 15px) / 1.35 var(--font-family);
+
   /* --- Color Tokens (Apple Dark Mode) --- */
   --bg-base: rgba(28, 28, 30, 0.82);
   --bg-secondary: rgba(44, 44, 46, 0.72);
