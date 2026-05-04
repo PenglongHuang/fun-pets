@@ -32,4 +32,6 @@ export const IPC = {
   PET_START_TRACKING: 'pet:startTracking',
   PET_STOP_TRACKING: 'pet:stopTracking',
   PET_SET_DRAGGING: 'pet:setDragging',
+  QUICK_NOTE_SAVED: 'quick-note:saved',
+  NAVIGATE_TO_NOTE: 'navigate:toNote',
 } as const

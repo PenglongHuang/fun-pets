@@ -113,13 +113,14 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
 
   return (
     <div className="flex items-center shrink-0" style={{ gap: 4 }}>
-      <button
-        onClick={() => scroll('left')}
-        style={arrowButtonStyle(canScrollLeft)}
-        tabIndex={canScrollLeft ? 0 : -1}
-      >
-        <ChevronLeft size={14} />
-      </button>
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          style={arrowButtonStyle(true)}
+        >
+          <ChevronLeft size={14} />
+        </button>
+      )}
 
       <div
         ref={scrollRef}
@@ -168,13 +169,14 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
         })}
       </div>
 
-      <button
-        onClick={() => scroll('right')}
-        style={arrowButtonStyle(canScrollRight)}
-        tabIndex={canScrollRight ? 0 : -1}
-      >
-        <ChevronRight size={14} />
-      </button>
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          style={arrowButtonStyle(true)}
+        >
+          <ChevronRight size={14} />
+        </button>
+      )}
 
       {contextMenu && (
         <TagContextMenu

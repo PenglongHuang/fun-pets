@@ -599,7 +599,7 @@ export default function SettingsPanel() {
           onChange={(v) => { const next = { ...pendingApp, closeToTray: v }; setPendingApp(next); checkDirty(pendingPomodoro, next) }}
         />
         <div className="flex items-center justify-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--separator)' }}>
-          <span className="text-caption-1" style={{ color: 'var(--text-primary)' }}>快速捕获快捷键</span>
+          <span className="text-caption-1" style={{ color: 'var(--text-primary)' }}>快捷笔记快捷键</span>
           <span
             className="font-mono text-caption-1 px-2 py-1 inline-block"
             style={{

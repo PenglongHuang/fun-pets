@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNoteStore } from '@/stores/noteStore'
-import MarkdownEditor from '@/components/common/MarkdownEditor'
-import MarkdownPreview from '@/components/common/MarkdownPreview'
-import { Plus, Trash2, Eye, Edit3, FileText, CheckSquare, Square } from 'lucide-react'
+import { Plus, Trash2, CheckSquare, Square, FileText } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
-import TagInput from '@/components/common/TagInput'
 import { getAllTags, getTagsWithCounts } from '@/lib/tag-utils'
 import { usePlanStore } from '@/stores/planStore'
+import { useToastStore } from '@/stores/toastStore'
+import NoteEditor from './NoteEditor'
 
 export default function NotesPanel() {
   const notes = useNoteStore((s) => s.notes)
@@ -17,26 +16,18 @@ export default function NotesPanel() {
   const createNote = useNoteStore((s) => s.createNote)
   const deleteNote = useNoteStore((s) => s.deleteNote)
   const deleteNotes = useNoteStore((s) => s.deleteNotes)
-  const saveNoteContent = useNoteStore((s) => s.saveNoteContent)
-  const loadNoteContent = useNoteStore((s) => s.loadNoteContent)
-  const updateNoteTags = useNoteStore((s) => s.updateNoteTags)
   const setActiveNote = useNoteStore((s) => s.setActiveNote)
   const renameNoteTag = useNoteStore((s) => s.renameTag)
   const deleteNoteTag = useNoteStore((s) => s.deleteTag)
   const renamePlanTag = usePlanStore((s) => s.renameTag)
   const deletePlanTag = usePlanStore((s) => s.deleteTag)
 
-  const [content, setContent] = useState('')
-  const [editing, setEditing] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'batch'; id?: string } | null>(null)
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
   useEffect(() => { load() }, [load])
-
-  const activeNote = notes.find((n) => n.id === activeNoteId)
 
   const allTags = useMemo(() => getAllTags(notes), [notes])
   const tagFilterItems = useMemo(() => getTagsWithCounts(notes), [notes])
@@ -45,26 +36,10 @@ export default function NotesPanel() {
     return notes.filter((n) => (n.tags ?? []).includes(activeTag))
   }, [notes, activeTag])
 
-  useEffect(() => {
-    if (activeNoteId) {
-      loadNoteContent(activeNoteId).then(setContent)
-    } else {
-      setContent('')
-    }
-  }, [activeNoteId, loadNoteContent])
-
-  const handleSave = useCallback(async () => {
-    if (!activeNoteId) return
-    setSaving(true)
-    await saveNoteContent(activeNoteId, content)
-    setSaving(false)
-    setEditing(false)
-  }, [activeNoteId, content, saveNoteContent])
-
   const handleCreate = async () => {
     const note = await createNote('新笔记')
     setActiveNote(note.id)
-    setEditing(true)
+    useToastStore.getState().show('新建笔记成功')
   }
 
   const handleRenameTag = useCallback(async (oldName: string, newName: string) => {
@@ -142,89 +117,8 @@ export default function NotesPanel() {
     )
   }
 
-  if (activeNote) {
-    return (
-      <div className="flex flex-col h-full gap-3">
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 shrink-0">
-          <motion.button
-            onClick={() => setActiveNote(null)}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              fontSize: 12,
-              color: 'var(--text-tertiary)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            ← 返回
-          </motion.button>
-          <span
-            className="truncate flex-1"
-            style={{ font: 'var(--text-caption-1)', color: 'var(--text-primary)', fontWeight: 500 }}
-          >
-            {activeNote.title}
-          </span>
-          <motion.button
-            onClick={() => setEditing((e) => !e)}
-            whileTap={{ scale: 0.9 }}
-            title={editing ? '预览' : '编辑'}
-            style={{
-              padding: 4,
-              borderRadius: 'var(--radius-sm)',
-              background: editing ? 'rgba(10,132,255,0.15)' : 'transparent',
-              color: editing ? 'var(--accent-blue)' : 'var(--text-tertiary)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-            }}
-          >
-            {editing ? <Eye size={14} /> : <Edit3 size={14} />}
-          </motion.button>
-        </div>
-
-        {/* Tag management */}
-        <TagInput
-          tags={activeNote.tags ?? []}
-          allTags={allTags}
-          onUpdateTags={(tags) => { if (activeNoteId) updateNoteTags(activeNoteId, tags) }}
-        />
-
-        {/* Editor / Preview */}
-        <div className="flex-1 min-h-0">
-          {editing ? (
-            <MarkdownEditor value={content} onChange={setContent} placeholder="开始书写..." />
-          ) : (
-            <MarkdownPreview content={content} />
-          )}
-        </div>
-
-        {/* Save button */}
-        {editing && (
-          <motion.button
-            onClick={handleSave}
-            disabled={saving}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-full)',
-              fontSize: 12,
-              fontWeight: 600,
-              background: 'var(--accent-blue)',
-              color: '#fff',
-              border: 'none',
-              cursor: saving ? 'wait' : 'pointer',
-              alignSelf: 'flex-end',
-              opacity: saving ? 0.6 : 1,
-              boxShadow: '0 2px 8px rgba(10,132,255,0.25)',
-            }}
-          >
-            {saving ? '保存中...' : '保存'}
-          </motion.button>
-        )}
-      </div>
-    )
+  if (activeNoteId) {
+    return <NoteEditor />
   }
 
   return (
@@ -339,8 +233,8 @@ export default function NotesPanel() {
         />
       )}
 
-      {/* Note cards */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" style={{ gap: 4 }}>
+      {/* Note cards + empty state */}
+      <div className="flex-1 min-h-0 flex flex-col" style={{ gap: 4 }}>
         {filteredNotes.map((note) => {
           const isSelected = selectedIds.has(note.id)
           return (
@@ -471,33 +365,32 @@ export default function NotesPanel() {
             </motion.div>
           )
         })}
+        {/* Empty state */}
+        <AnimatePresence mode="wait">
+          {filteredNotes.length === 0 && !editMode && (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <FileText size={28} style={{ color: 'var(--text-quaternary)', opacity: 0.4 }} strokeWidth={1.2} />
+              <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-quaternary)' }}>
+                {activeTag ? '该标签下暂无笔记' : '暂无笔记'}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Empty state */}
-      <AnimatePresence mode="wait">
-        {filteredNotes.length === 0 && !editMode && (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              textAlign: 'center',
-              padding: '32px 0 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <FileText size={28} style={{ color: 'var(--text-quaternary)', opacity: 0.4 }} strokeWidth={1.2} />
-            <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-quaternary)' }}>
-              {activeTag ? '该标签下暂无笔记' : '暂无笔记'}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Batch delete action bar */}
       <AnimatePresence>

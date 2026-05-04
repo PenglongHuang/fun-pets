@@ -162,12 +162,11 @@ html, body, #root {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(10, 132, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
-  box-shadow: 0 0 6px rgba(10, 132, 255, 0.10);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(10, 132, 255, 0.35);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* === Pet Animations (Redesigned — Expressive & Refined) === */

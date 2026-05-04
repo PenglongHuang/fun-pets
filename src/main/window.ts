@@ -72,16 +72,15 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow
 }
 
-/** Expand from pet mode to full panel mode */
-export function expandToPanelMode(petX?: number, petY?: number): void {
-  if (!mainWindow) return
+/** Expand from pet mode to full panel mode — returns the pre-expansion position */
+export function expandToPanelMode(petX?: number, petY?: number): { x: number; y: number } {
+  if (!mainWindow) return { x: 0, y: 0 }
+
+  // Capture original position BEFORE resizing
+  const original = mainWindow.getBounds()
+
   const display = getTargetDisplay()
   const { workAreaSize } = display
-
-  // Calculate target position: expand leftward from pet position
-  // If no pet position given, use current window position
-  const sourceX = petX ?? mainWindow.getBounds().x
-  const sourceY = petY ?? mainWindow.getBounds().y
 
   // Target: right-edge anchored, vertically centered
   let targetX = display.bounds.x + workAreaSize.width - EXPANDED_WIDTH
@@ -97,6 +96,8 @@ export function expandToPanelMode(petX?: number, petY?: number): void {
     width: EXPANDED_WIDTH,
     height: EXPANDED_HEIGHT,
   })
+
+  return { x: original.x, y: original.y }
 }
 
 /** Collapse from panel mode back to pet mode */

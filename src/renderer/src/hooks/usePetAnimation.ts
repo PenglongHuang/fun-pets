@@ -7,6 +7,8 @@ export function usePetAnimation() {
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
+    if (window.location.hash === '#quick-capture') return
+
     const check = () => {
       const { lastInteraction, setState, state } = usePetStore.getState()
       if (state !== 'singleWink' && state !== 'sleep' && Date.now() - lastInteraction > SLEEPY_TIMEOUT) {

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { usePlanStore } from '@/stores/planStore'
-import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange, MoreVertical } from 'lucide-react'
+import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange, MoreVertical, Play } from 'lucide-react'
 import TagFilterBar from '@/components/common/TagFilterBar'
 import { getTagsWithCounts } from '@/lib/tag-utils'
 import { useNoteStore } from '@/stores/noteStore'
@@ -9,6 +9,7 @@ import PlanCreateDialog from './PlanCreateDialog'
 import PlanContextMenu from './PlanContextMenu'
 import { usePetStore } from '@/stores/petStore'
 import { useTimerStore } from '@/stores/timerStore'
+import { useToastStore } from '@/stores/toastStore'
 import type { PlanType, Plan } from '@/types/plan'
 
 type TabKey = 'all' | PlanType
@@ -132,6 +133,7 @@ export default function PlanList() {
     const plan = await createPlan(title, startDate, endDate, planType)
     setActivePlan(plan.id)
     setShowCreateDialog(false)
+    useToastStore.getState().show('新建计划成功')
   }
 
   const handleSingleDelete = (id: string) => {
@@ -141,7 +143,7 @@ export default function PlanList() {
   const handleStartFocusFromPlan = (planId: string) => {
     setActivePanel('timer')
     setWindowMode('expanded')
-    useTimerStore.getState().startWithPlan(planId)
+    useTimerStore.setState({ pendingStartPlanId: planId })
   }
 
   const confirmDelete = async () => {
@@ -164,7 +166,7 @@ export default function PlanList() {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 6 }}>
+    <div className="flex flex-col h-full" style={{ gap: 6 }}>
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         {editMode ? (
@@ -313,8 +315,8 @@ export default function PlanList() {
         />
       )}
 
-      {/* Plan cards */}
-      <div className="flex flex-col" style={{ gap: 4 }}>
+      {/* Plan cards + empty state */}
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" style={{ gap: 4 }}>
         {filteredPlans.map((plan) => {
           const badge = TYPE_BADGE[plan.planType || 'daily']
           const isSelected = selectedIds.has(plan.id)
@@ -441,58 +443,75 @@ export default function PlanList() {
                 )}
               </div>
 
-              {/* More menu */}
+              {/* Actions - visible on hover */}
               {!editMode && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    setContextMenu({ planId: plan.id, rect })
-                  }}
-                  style={{
-                    opacity: 0, background: 'transparent', border: 'none',
-                    color: 'var(--text-quaternary)', cursor: 'pointer', padding: 4,
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'opacity 0.15s ease, color 0.15s ease',
-                    flexShrink: 0,
-                  }}
-                  className="group-hover:opacity-100"
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-tertiary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-quaternary)' }}
-                >
-                  <MoreVertical size={14} />
-                </button>
+                <div className="flex items-center opacity-0 group-hover:opacity-100" style={{ transition: 'opacity 0.15s ease' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleStartFocusFromPlan(plan.id)
+                    }}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      color: '#0A84FF', cursor: 'pointer', padding: 4,
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'transform 0.15s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.15)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+                  >
+                    <Play size={14} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setContextMenu({ planId: plan.id, rect })
+                    }}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      color: 'var(--text-quaternary)', cursor: 'pointer', padding: 4,
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'color 0.15s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-tertiary)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-quaternary)' }}
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
               )}
             </motion.div>
           )
         })}
+        {/* Empty state */}
+        <AnimatePresence mode="wait">
+          {filteredPlans.length === 0 && !editMode && (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Calendar size={28} style={{ color: 'var(--text-quaternary)', opacity: 0.4 }} strokeWidth={1.2} />
+              <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-quaternary)' }}>
+                {activeTab === 'all' ? '暂无计划' : '该类型暂无计划'}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Empty state */}
-      <AnimatePresence mode="wait">
-        {filteredPlans.length === 0 && !editMode && (
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              textAlign: 'center',
-              padding: '32px 0 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <Calendar size={28} style={{ color: 'var(--text-quaternary)', opacity: 0.4 }} strokeWidth={1.2} />
-            <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-quaternary)' }}>
-              {activeTab === 'all' ? '暂无计划' : '该类型暂无计划'}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Batch delete action bar */}
       <AnimatePresence>
@@ -510,6 +529,7 @@ export default function PlanList() {
               borderRadius: 'var(--radius-md)',
               background: 'var(--bg-secondary)',
               border: '0.5px solid rgba(255,255,255,0.06)',
+              flexShrink: 0,
             }}
           >
             <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-secondary)', fontWeight: 500 }}>

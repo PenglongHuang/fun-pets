@@ -4,6 +4,7 @@ import IconStrip from './IconStrip'
 import PetAvatar from '@/components/pet/PetAvatar'
 import { usePetStore } from '@/stores/petStore'
 import { motion } from 'motion/react'
+import GlobalToast from '@/components/common/GlobalToast'
 
 export default function Sidebar() {
   const activePanel = usePetStore((s) => s.activePanel)
@@ -14,7 +15,9 @@ export default function Sidebar() {
     <div
       className="h-full flex overflow-hidden"
       style={{
+        position: 'relative',
         borderRadius: 'var(--radius-xl)',
+        minWidth: 360,
         background: 'rgba(28, 28, 30, 1)',
         border: '0.5px solid rgba(255,255,255,0.10)',
         boxShadow: '0 8px 40px rgba(0,0,0,0.25), inset 0 0.5px 0 rgba(255,255,255,0.06)',
@@ -77,6 +80,8 @@ export default function Sidebar() {
           <X size={16} strokeWidth={1.8} />
         </motion.button>
       </div>
+
+      <GlobalToast />
     </div>
   )
 }

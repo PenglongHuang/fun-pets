@@ -111,7 +111,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC.WINDOW_EXPAND_PANEL, (_e, petX?: number, petY?: number) => {
-    expandToPanelMode(petX, petY)
+    return expandToPanelMode(petX, petY)
   })
 
   ipcMain.handle(IPC.WINDOW_COLLAPSE_PET, (_e, petX?: number, petY?: number) => {
@@ -181,5 +181,17 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.PET_SET_DRAGGING, (_e, dragging: boolean, cursorX?: number, cursorY?: number) => {
     setPetDragging(dragging, cursorX, cursorY)
+  })
+
+  // Quick note saved → relay to main window
+  ipcMain.on(IPC.QUICK_NOTE_SAVED, (_e, noteId: string) => {
+    const mainWin = getMainWindow()
+    if (!mainWin || mainWin.isDestroyed()) return
+    const send = () => mainWin.webContents.send(IPC.NAVIGATE_TO_NOTE, noteId)
+    if (mainWin.webContents.isLoading()) {
+      mainWin.webContents.once('dom-ready', send)
+    } else {
+      send()
+    }
   })
 }

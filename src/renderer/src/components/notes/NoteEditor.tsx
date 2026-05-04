@@ -1,61 +1,62 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { usePlanStore } from '@/stores/planStore'
+import { useNoteStore } from '@/stores/noteStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
 import { ArrowLeft, Pencil, Eye } from 'lucide-react'
-import { motion } from 'motion/react'
-import { extractH1Title } from '@/utils/markdown'
-import { useToast } from '@/components/common/Toast'
 import TagInput from '@/components/common/TagInput'
 import { getAllTags } from '@/lib/tag-utils'
+import { motion } from 'motion/react'
+import { useToast } from '@/components/common/Toast'
+import { extractH1Title } from '@/utils/markdown'
 
 const AUTO_SAVE_DELAY = 3000
 
-interface PlanEditorProps {
-  planId: string
-}
+export default function NoteEditor() {
+  const activeNoteId = useNoteStore((s) => s.activeNoteId)
+  const note = useNoteStore((s) => s.notes.find((n) => n.id === activeNoteId))
+  const loadNoteContent = useNoteStore((s) => s.loadNoteContent)
+  const saveNoteContent = useNoteStore((s) => s.saveNoteContent)
+  const updateNoteTitle = useNoteStore((s) => s.updateNoteTitle)
+  const updateNoteTags = useNoteStore((s) => s.updateNoteTags)
+  const setActiveNote = useNoteStore((s) => s.setActiveNote)
+  const notes = useNoteStore((s) => s.notes)
 
-export default function PlanEditor({ planId }: PlanEditorProps) {
-  const plan = usePlanStore((s) => s.plans.find((p) => p.id === planId))
-  const loadPlanContent = usePlanStore((s) => s.loadPlanContent)
-  const savePlanContent = usePlanStore((s) => s.savePlanContent)
-  const updatePlan = usePlanStore((s) => s.updatePlan)
-  const setActivePlan = usePlanStore((s) => s.setActivePlan)
-  const updatePlanTags = usePlanStore((s) => s.updatePlanTags)
-  const plans = usePlanStore((s) => s.plans)
+  const allTags = useMemo(() => getAllTags(notes), [notes])
 
   const [content, setContent] = useState('')
-  const [editMode, setEditMode] = useState<'edit' | 'preview'>('edit')
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
   const [dirty, setDirty] = useState(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const contentRef = useRef(content)
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
-  const allTags = useMemo(() => getAllTags(plans), [plans])
 
   const { showToast, ToastContainer } = useToast()
 
   useEffect(() => {
-    loadPlanContent(planId).then((c) => {
-      setContent(c)
-      setDirty(false)
-    })
-  }, [planId, loadPlanContent])
+    if (activeNoteId) {
+      loadNoteContent(activeNoteId).then((c) => {
+        setContent(c)
+        setDirty(false)
+      })
+    }
+  }, [activeNoteId, loadNoteContent])
 
   const doSave = useCallback(async (isAuto: boolean) => {
-    if (!plan) return
-    await savePlanContent(plan.id, contentRef.current)
+    if (!note) return
+    await saveNoteContent(note.id, contentRef.current)
 
     const h1 = extractH1Title(contentRef.current)
-    if (h1 && h1 !== plan.title) {
-      await updatePlan(plan.id, { title: h1 })
+    if (h1 && h1 !== note.title) {
+      await updateNoteTitle(note.id, h1)
     }
 
     setDirty(false)
     showToast(isAuto ? '自动保存成功' : '保存成功')
-  }, [plan, savePlanContent, updatePlan, showToast])
+  }, [note, saveNoteContent, updateNoteTitle, showToast])
 
+  // Ctrl+S handler
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -67,24 +68,26 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [doSave])
 
+  // Cleanup: save dirty content on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
       if (dirtyRef.current) {
-        const store = usePlanStore.getState()
-        const currentPlan = store.plans.find((p) => p.id === planId)
-        if (currentPlan) {
-          store.savePlanContent(planId, contentRef.current)
+        const store = useNoteStore.getState()
+        const { activeNoteId } = store
+        const currentNote = store.notes.find((n) => n.id === activeNoteId)
+        if (currentNote) {
+          store.saveNoteContent(currentNote.id, contentRef.current)
           const h1 = extractH1Title(contentRef.current)
-          if (h1 && h1 !== currentPlan.title) {
-            store.updatePlan(planId, { title: h1 })
+          if (h1 && h1 !== currentNote.title) {
+            store.updateNoteTitle(currentNote.id, h1)
           }
         }
       }
     }
-  }, [planId])
+  }, [])
 
-  if (!plan) return null
+  if (!note) return null
 
   const handleChange = (newContent: string) => {
     setContent(newContent)
@@ -101,7 +104,7 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <motion.button
-          onClick={() => setActivePlan(null)}
+          onClick={() => setActiveNote(null)}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           style={{
@@ -118,11 +121,11 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
         </motion.button>
 
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: plan.color, flexShrink: 0 }} />
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: note.color, flexShrink: 0 }} />
           <span className="truncate" style={{ font: 'var(--text-headline)', color: 'var(--text-primary)', fontWeight: 600 }}>
-            {plan.title}
+            {note.title}
           </span>
-          {dirty && editMode === 'edit' && (
+          {dirty && mode === 'edit' && (
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent-orange)', flexShrink: 0 }} />
           )}
         </div>
@@ -136,15 +139,15 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
             padding: 2,
           }}
         >
-          {([['edit', Pencil], ['preview', Eye]] as const).map(([mode, Icon]) => (
+          {([['edit', Pencil], ['preview', Eye]] as const).map(([m, Icon]) => (
             <motion.button
-              key={mode}
-              onClick={() => setEditMode(mode)}
+              key={m}
+              onClick={() => setMode(m)}
               whileTap={{ scale: 0.9 }}
               style={{
                 width: 28, height: 24, borderRadius: 5,
-                background: editMode === mode ? 'var(--accent-blue)' : 'transparent',
-                color: editMode === mode ? '#fff' : 'var(--text-quaternary)',
+                background: mode === m ? 'var(--accent-blue)' : 'transparent',
+                color: mode === m ? '#fff' : 'var(--text-quaternary)',
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'background 0.2s ease, color 0.2s ease',
@@ -158,15 +161,16 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
 
       {/* Tags */}
       <TagInput
-        tags={plan.tags ?? []}
+        tags={note.tags ?? []}
         allTags={allTags}
-        onUpdateTags={(tags) => updatePlanTags(plan.id, tags)}
+        onUpdateTags={(tags) => updateNoteTags(note.id, tags)}
+        placeholder="添加标签..."
       />
 
-      {/* Content */}
+      {/* Editor / Preview */}
       <div className="flex-1 min-h-0">
-        {editMode === 'edit' ? (
-          <MarkdownEditor value={content} onChange={handleChange} placeholder="# 计划内容\n\n- [ ] 待办项 1\n- [ ] 待办项 2" />
+        {mode === 'edit' ? (
+          <MarkdownEditor value={content} onChange={handleChange} placeholder="# 标题\n\n内容..." />
         ) : (
           <MarkdownPreview content={content} />
         )}

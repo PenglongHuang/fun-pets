@@ -3,6 +3,7 @@ import { immer } from 'zustand/middleware/immer'
 import { store, notify } from '@/lib/ipc'
 import { usePetStore } from './petStore'
 import { useSettingsStore } from './settingsStore'
+import { useToastStore } from './toastStore'
 import { fireConfetti } from '@/lib/confetti'
 import type { TimerPhase, TimerStatus, TimerHistoryEntry } from '@/types/timer'
 
@@ -19,6 +20,7 @@ interface TimerStore {
   pendingPlanId: string | null
   history: TimerHistoryEntry[]
   lastSelectedPlanId: string | null
+  pendingStartPlanId: string | null
   start: () => void
   pause: () => void
   resume: () => void
@@ -47,6 +49,7 @@ export const useTimerStore = create<TimerStore>()(
     pendingPlanId: null,
     history: [],
     lastSelectedPlanId: null,
+    pendingStartPlanId: null,
 
     start: () => {
       const { phase } = get()
@@ -66,6 +69,7 @@ export const useTimerStore = create<TimerStore>()(
       })
       usePetStore.getState().setState('singleWink')
       get()._persist()
+      useToastStore.getState().show('启动番茄钟')
     },
 
     pause: () => {
@@ -113,14 +117,16 @@ export const useTimerStore = create<TimerStore>()(
       if (phase === 'focus') {
         const actualMinutes = Math.max(1, Math.round((totalMs - remainingMs) / 60000))
         set((s) => { s.todayCount++; s.todayMinutes += actualMinutes })
-        store.get<{ completedAt: string; phase: 'focus'; durationMinutes: number }[]>('timerHistory')
+        const entry: TimerHistoryEntry = {
+          completedAt: new Date().toISOString(),
+          phase: 'focus',
+          durationMinutes: actualMinutes,
+          ...(pendingPlanId ? { planId: pendingPlanId } : {}),
+        }
+        set((s) => { s.history.push(entry) })
+        store.get<TimerHistoryEntry[]>('timerHistory')
           .then((history = []) => {
-            history.push({
-              completedAt: new Date().toISOString(),
-              phase: 'focus',
-              durationMinutes: actualMinutes,
-              ...(pendingPlanId ? { planId: pendingPlanId } : {}),
-            })
+            history.push(entry)
             return store.set('timerHistory', history)
           })
       }

@@ -75,6 +75,16 @@ const api = {
     ipcRenderer.on(IPC.PET_CURSOR_HOVER, handler)
     return () => ipcRenderer.removeListener(IPC.PET_CURSOR_HOVER, handler)
   },
+
+  // Quick note navigation
+  quickNoteSaved: (noteId: string) => {
+    ipcRenderer.send(IPC.QUICK_NOTE_SAVED, noteId)
+  },
+  onNavigateToNote: (callback: (noteId: string) => void) => {
+    const handler = (_e: any, noteId: string) => callback(noteId)
+    ipcRenderer.on(IPC.NAVIGATE_TO_NOTE, handler)
+    return () => ipcRenderer.removeListener(IPC.NAVIGATE_TO_NOTE, handler)
+  },
 }
 
 if (process.contextIsolated) {

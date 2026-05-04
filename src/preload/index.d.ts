@@ -30,6 +30,8 @@ export interface FunPetsAPI {
   stopPetTracking: () => Promise<void>
   setPetDragging: (dragging: boolean) => Promise<void>
   onPetCursorHover: (callback: (hovered: boolean) => void) => () => void
+  quickNoteSaved: (noteId: string) => void
+  onNavigateToNote: (callback: (noteId: string) => void) => () => void
 }
 
 declare global {

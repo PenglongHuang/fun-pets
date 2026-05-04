@@ -5,6 +5,7 @@ import TimerControls from './TimerControls'
 import FocusStartDialog from './FocusStartDialog'
 import TimerHistoryPanel from './TimerHistoryPanel'
 import { useTimerStore } from '@/stores/timerStore'
+import { usePlanStore } from '@/stores/planStore'
 
 export default function TimerPanel() {
   const timer = useTimerStore((s) => s)
@@ -16,6 +17,13 @@ export default function TimerPanel() {
     timer._loadHistory()
   }, [timer._loadPersisted, timer._loadHistory])
 
+  useEffect(() => {
+    if (timer.pendingStartPlanId) {
+      useTimerStore.setState({ pendingStartPlanId: null, lastSelectedPlanId: timer.pendingStartPlanId })
+      setShowStartDialog(true)
+    }
+  }, [timer.pendingStartPlanId])
+
   const handleStart = () => {
     if (timer.phase === 'focus') {
       setShowStartDialog(true)
@@ -24,13 +32,10 @@ export default function TimerPanel() {
     }
   }
 
-  const handleStartWithoutPlan = () => {
-    setShowStartDialog(false)
-    timer.start()
-  }
+  const plans = usePlanStore((s) => s.plans)
 
   return (
-    <div className="flex flex-col h-full gap-4" style={{ overflowY: 'auto' }}>
+    <div className="flex flex-col h-full gap-4" style={{ position: 'relative' }}>
       {/* History panel (top) */}
       <div
         onClick={() => setShowHistory(!showHistory)}
@@ -53,6 +58,27 @@ export default function TimerPanel() {
           round={timer.round}
           status={timer.status}
         />
+
+        {timer.pendingPlanId && (() => {
+          const plan = plans.find((p) => p.id === timer.pendingPlanId)
+          if (!plan) return null
+          return (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                fontSize: 11, fontWeight: 500,
+                padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                background: `${plan.color}15`, color: plan.color,
+                maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                textAlign: 'center',
+              }}
+            >
+              {plan.title}
+            </motion.div>
+          )
+        })()}
 
         <TimerControls
           status={timer.status}
@@ -79,7 +105,6 @@ export default function TimerPanel() {
       {showStartDialog && (
         <FocusStartDialog
           onCancel={() => setShowStartDialog(false)}
-          onStartWithoutPlan={handleStartWithoutPlan}
         />
       )}
     </div>

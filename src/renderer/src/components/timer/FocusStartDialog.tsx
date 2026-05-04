@@ -13,25 +13,27 @@ const TYPE_BADGE: Record<string, { bg: string; label: string }> = {
 
 interface FocusStartDialogProps {
   onCancel: () => void
-  onStartWithoutPlan: () => void
 }
 
-export default function FocusStartDialog({ onCancel, onStartWithoutPlan }: FocusStartDialogProps) {
+export default function FocusStartDialog({ onCancel }: FocusStartDialogProps) {
   const plans = usePlanStore((s) => s.plans)
   const lastSelectedPlanId = useTimerStore((s) => s.lastSelectedPlanId)
   const startWithPlan = useTimerStore((s) => s.startWithPlan)
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(lastSelectedPlanId)
-
+  const start = useTimerStore((s) => s.start)
   const sortedPlans = [...plans].sort((a, b) =>
     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
+
+  const defaultPlanId = lastSelectedPlanId ?? sortedPlans[0]?.id ?? null
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(defaultPlanId)
 
   const handleStart = () => {
     if (selectedPlanId) {
       startWithPlan(selectedPlanId)
     } else {
-      onStartWithoutPlan()
+      start()
     }
+    onCancel()
   }
 
   return (
@@ -42,9 +44,9 @@ export default function FocusStartDialog({ onCancel, onStartWithoutPlan }: Focus
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
         style={{
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
-          background: 'rgba(0,0,0,0.5)',
+          background: 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -60,7 +62,7 @@ export default function FocusStartDialog({ onCancel, onStartWithoutPlan }: Focus
           onClick={(e) => e.stopPropagation()}
           style={{
             width: 300,
-            background: 'var(--bg-secondary)',
+            background: 'rgba(44, 44, 46, 0.98)',
             borderRadius: 'var(--radius-xl)',
             padding: 20,
             boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
@@ -129,29 +131,17 @@ export default function FocusStartDialog({ onCancel, onStartWithoutPlan }: Focus
             )}
           </div>
 
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={onStartWithoutPlan}
-              style={{
-                flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: 'var(--radius-sm)',
-                fontSize: 13, fontWeight: 500, background: 'var(--bg-tertiary)',
-                color: 'var(--text-secondary)', border: 'none', cursor: 'pointer',
-              }}
-            >
-              不关联
-            </button>
-            <button
-              onClick={handleStart}
-              style={{
-                flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: 'var(--radius-sm)',
-                fontSize: 13, fontWeight: 600, background: 'rgba(255,159,10,0.2)',
-                color: '#FF9F0A', border: 'none', cursor: 'pointer',
-              }}
-            >
-              开始专注
-            </button>
-          </div>
+          {/* Button */}
+          <button
+            onClick={handleStart}
+            style={{
+              width: '100%', textAlign: 'center', padding: '8px 0', borderRadius: 'var(--radius-sm)',
+              fontSize: 13, fontWeight: 600, background: 'rgba(10,132,255,0.2)',
+              color: '#0A84FF', border: 'none', cursor: 'pointer',
+            }}
+          >
+            开始
+          </button>
         </motion.div>
       </motion.div>
     </AnimatePresence>

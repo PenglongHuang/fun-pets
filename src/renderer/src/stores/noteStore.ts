@@ -4,7 +4,6 @@ import { nanoid } from 'nanoid'
 import { fs } from '@/lib/ipc'
 import type { Note } from '@/types/note'
 
-const COLOR_PALETTE = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 
 interface NoteStore {
   notes: Note[]
@@ -51,13 +50,21 @@ export const useNoteStore = create<NoteStore>()(
       const id = nanoid(8)
       const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
       const filePath = `notes/${id}-${slug}.md`
-      const color = COLOR_PALETTE[get().notes.length % COLOR_PALETTE.length]
+      const color = '#3b82f6'
       const now = new Date().toISOString()
       const note: Note = { id, title, filePath, color, tags: tags ?? [], createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
+
+      // Read-modify-write to avoid overwriting notes from other windows
+      let diskNotes: Note[] = []
+      try {
+        diskNotes = JSON.parse(await fs.readFile('notes/index.json'))
+      } catch { /* empty or missing */ }
+      diskNotes.push(note)
+      await fs.writeFile('notes/index.json', JSON.stringify(diskNotes, null, 2))
+
       set((s) => { s.notes.push(note) })
-      await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
       return note
     },
 

@@ -25,7 +25,7 @@ export default function PanelRouter({ activePanel }: PanelRouterProps) {
   if (!config) return null
 
   return (
-    <div className="flex-1 min-w-0 overflow-hidden">
+    <div className="flex-1 overflow-hidden" style={{ minWidth: 280 }}>
       <Suspense fallback={
         <div className="flex items-center justify-center h-full">
           <Loader2 size={16} className="text-white/30 animate-spin" />

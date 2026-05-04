@@ -40,8 +40,8 @@ export const windowApi = {
     window.api.windowSetIgnoreMouseEvents(ignore),
   moveBy: (cursorX: number, cursorY: number) =>
     window.api.windowMoveBy(cursorX, cursorY),
-  expandPanel: (petX?: number, petY?: number) =>
-    window.api.windowExpandPanel(petX, petY),
+  expandPanel: (petX?: number, petY?: number): Promise<{ x: number; y: number }> =>
+    window.api.windowExpandPanel(petX, petY) as Promise<{ x: number; y: number }>,
   collapsePet: (petX?: number, petY?: number) =>
     window.api.windowCollapsePet(petX, petY),
   invalidate: (): Promise<void> =>
@@ -81,4 +81,14 @@ export const storeEvents = {
 export const petEvents = {
   onCursorHover: (callback: (hovered: boolean) => void) =>
     window.api.onPetCursorHover(callback),
+}
+
+export const quickNoteApi = {
+  saved: (noteId: string): void =>
+    window.api.quickNoteSaved(noteId),
+}
+
+export const noteEvents = {
+  onNavigateToNote: (callback: (noteId: string) => void) =>
+    window.api.onNavigateToNote(callback),
 }

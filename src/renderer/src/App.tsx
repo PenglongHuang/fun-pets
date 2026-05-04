@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import Sidebar from '@/components/sidebar/Sidebar'
 import PetModeView from '@/components/pet/PetModeView'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -19,12 +20,21 @@ function QuickCapture() {
     return cleanup
   }, [])
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') window.close()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
   const submit = async () => {
     if (!title.trim()) return
     const { useNoteStore } = await import('@/stores/noteStore')
-    await useNoteStore.getState().createNote(title, content, ['快捷笔记'])
+    const note = await useNoteStore.getState().createNote(title, content, ['快捷笔记'])
     setTitle('')
     setContent('')
+    window.api.quickNoteSaved(note.id)
     window.close()
   }
 
@@ -32,6 +42,7 @@ function QuickCapture() {
     <div
       className="w-full h-full flex flex-col"
       style={{
+        position: 'relative',
         background: 'rgba(28, 28, 30, 0.95)',
         backdropFilter: 'blur(60px) saturate(180%)',
         WebkitBackdropFilter: 'blur(60px) saturate(180%)',
@@ -41,6 +52,26 @@ function QuickCapture() {
         gap: 8,
       }}
     >
+      <button
+        onClick={() => window.close()}
+        style={{
+          position: 'absolute',
+          top: 6,
+          right: 8,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'rgba(255,255,255,0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 2,
+          zIndex: 1,
+        }}
+        aria-label="关闭"
+      >
+        <X size={14} strokeWidth={1.8} />
+      </button>
       <input
         autoFocus
         className="w-full text-primary outline-none bg-transparent"
@@ -135,6 +166,16 @@ export default function App() {
       return () => window.removeEventListener('keydown', handleKey)
     }
   }, [isQuickCapture, windowMode, setWindowMode])
+
+  // Reload notes when quick capture saves a new note
+  useEffect(() => {
+    if (isQuickCapture) return
+    const cleanup = window.api.onNavigateToNote(async () => {
+      const { useNoteStore } = await import('@/stores/noteStore')
+      useNoteStore.getState().load()
+    })
+    return cleanup
+  }, [isQuickCapture])
 
   if (isQuickCapture) return <QuickCapture />
 
