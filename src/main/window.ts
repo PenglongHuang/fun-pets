@@ -10,6 +10,19 @@ const PET_HEIGHT = 200
 const EXPANDED_WIDTH = 480
 const EXPANDED_HEIGHT = 680
 
+let isExpandedMode = false
+
+function handleResizeAnchor(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const bounds = mainWindow.getBounds()
+  const display = getTargetDisplay()
+  const { workAreaSize } = display
+  const targetX = display.bounds.x + workAreaSize.width - bounds.width
+  const targetY = display.bounds.y + Math.floor((workAreaSize.height - bounds.height) / 2)
+  // setPosition only fires 'resize' if size actually changes, so no infinite loop risk
+  mainWindow.setPosition(targetX, targetY)
+}
+
 function getTargetDisplay() {
   if (mainWindow) {
     const bounds = mainWindow.getBounds()
@@ -73,36 +86,62 @@ export function getMainWindow(): BrowserWindow | null {
 }
 
 /** Expand from pet mode to full panel mode — returns the pre-expansion position */
-export function expandToPanelMode(petX?: number, petY?: number): { x: number; y: number } {
+export function expandToPanelMode(
+  petX?: number,
+  petY?: number,
+  savedExpandedSize?: { width: number; height: number }
+): { x: number; y: number } {
   if (!mainWindow) return { x: 0, y: 0 }
 
   // Capture original position BEFORE resizing
   const original = mainWindow.getBounds()
 
+  const width = savedExpandedSize?.width ?? EXPANDED_WIDTH
+  const height = savedExpandedSize?.height ?? EXPANDED_HEIGHT
+
   const display = getTargetDisplay()
   const { workAreaSize } = display
 
   // Target: right-edge anchored, vertically centered
-  let targetX = display.bounds.x + workAreaSize.width - EXPANDED_WIDTH
-  let targetY = display.bounds.y + Math.floor((workAreaSize.height - EXPANDED_HEIGHT) / 2)
+  let targetX = display.bounds.x + workAreaSize.width - width
+  let targetY = display.bounds.y + Math.floor((workAreaSize.height - height) / 2)
 
   // Clamp to screen bounds
-  targetX = Math.max(display.bounds.x, Math.min(targetX, display.bounds.x + workAreaSize.width - EXPANDED_WIDTH))
-  targetY = Math.max(display.bounds.y, Math.min(targetY, display.bounds.y + workAreaSize.height - EXPANDED_HEIGHT))
+  targetX = Math.max(display.bounds.x, Math.min(targetX, display.bounds.x + workAreaSize.width - width))
+  targetY = Math.max(display.bounds.y, Math.min(targetY, display.bounds.y + workAreaSize.height - height))
+
+  mainWindow.setResizable(true)
+  mainWindow.setMinimumSize(480, 500)
 
   mainWindow.setBounds({
     x: targetX,
     y: targetY,
-    width: EXPANDED_WIDTH,
-    height: EXPANDED_HEIGHT,
+    width,
+    height,
   })
+
+  isExpandedMode = true
+  mainWindow.on('resize', handleResizeAnchor)
 
   return { x: original.x, y: original.y }
 }
 
-/** Collapse from panel mode back to pet mode */
-export function collapseToPetMode(petX?: number, petY?: number): void {
-  if (!mainWindow) return
+/** Collapse from panel mode back to pet mode — returns expanded size for persistence */
+export function collapseToPetMode(petX?: number, petY?: number): { width: number; height: number } | null {
+  if (!mainWindow) return null
+
+  // Capture current bounds if in expanded mode (for size persistence)
+  let savedExpandedSize: { width: number; height: number } | null = null
+  if (isExpandedMode) {
+    const bounds = mainWindow.getBounds()
+    savedExpandedSize = { width: bounds.width, height: bounds.height }
+  }
+
+  mainWindow.removeListener('resize', handleResizeAnchor)
+  mainWindow.setResizable(false)
+  mainWindow.setMinimumSize(0, 0)
+
+  isExpandedMode = false
 
   // Use saved pet position or default right-side position
   let targetX = petX
@@ -121,6 +160,8 @@ export function collapseToPetMode(petX?: number, petY?: number): void {
     width: PET_WIDTH,
     height: PET_HEIGHT,
   })
+
+  return savedExpandedSize
 }
 
 /** Legacy alias — kept for backward compat with existing code */
