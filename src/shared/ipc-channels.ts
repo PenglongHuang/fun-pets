@@ -19,6 +19,8 @@ export const IPC = {
   WINDOW_MOVE_BY: 'window:moveBy',
   WINDOW_EXPAND_PANEL: 'window:expandPanel',
   WINDOW_COLLAPSE_PET: 'window:collapsePet',
+  WINDOW_MINIMIZE: 'window:minimize',
+  WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_INVALIDATE: 'window:invalidate',
   NOTIFICATION_SHOW: 'notification:show',
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',

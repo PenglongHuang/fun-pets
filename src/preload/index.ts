@@ -37,6 +37,8 @@ const api = {
     ipcRenderer.invoke(IPC.WINDOW_EXPAND_PANEL, petX, petY),
   windowCollapsePet: (petX?: number, petY?: number) =>
     ipcRenderer.invoke(IPC.WINDOW_COLLAPSE_PET, petX, petY),
+  windowMinimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE),
+  windowMaximize: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE),
   windowInvalidate: () =>
     ipcRenderer.invoke(IPC.WINDOW_INVALIDATE),
 

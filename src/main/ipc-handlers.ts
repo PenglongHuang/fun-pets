@@ -122,6 +122,20 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle(IPC.WINDOW_MINIMIZE, () => {
+    getMainWindow()?.minimize()
+  })
+
+  ipcMain.handle(IPC.WINDOW_MAXIMIZE, () => {
+    const win = getMainWindow()
+    if (!win) return
+    if (win.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win.maximize()
+    }
+  })
+
   ipcMain.handle(IPC.WINDOW_INVALIDATE, () => {
     const win = getMainWindow()
     if (win) {

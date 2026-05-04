@@ -44,6 +44,10 @@ export const windowApi = {
     window.api.windowExpandPanel(petX, petY) as Promise<{ x: number; y: number }>,
   collapsePet: (petX?: number, petY?: number) =>
     window.api.windowCollapsePet(petX, petY),
+  minimize: (): Promise<void> =>
+    window.api.windowMinimize(),
+  maximize: (): Promise<void> =>
+    window.api.windowMaximize(),
   invalidate: (): Promise<void> =>
     window.api.windowInvalidate(),
   startPetTracking: (): Promise<void> =>
