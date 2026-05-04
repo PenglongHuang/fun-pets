@@ -111,11 +111,15 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC.WINDOW_EXPAND_PANEL, (_e, petX?: number, petY?: number) => {
-    return expandToPanelMode(petX, petY)
+    const savedSize = store.get('window.expandedSize') as { width: number; height: number } | undefined
+    return expandToPanelMode(petX, petY, savedSize)
   })
 
   ipcMain.handle(IPC.WINDOW_COLLAPSE_PET, (_e, petX?: number, petY?: number) => {
-    collapseToPetMode(petX, petY)
+    const savedSize = collapseToPetMode(petX, petY)
+    if (savedSize) {
+      store.set('window.expandedSize', savedSize)
+    }
   })
 
   ipcMain.handle(IPC.WINDOW_INVALIDATE, () => {
