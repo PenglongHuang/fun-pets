@@ -156,9 +156,9 @@ Sidebar (flex-col)
 **单个按钮 hover**: 额外加 `box-shadow: 0 0 0 1.5px rgba(color, 0.4)` 外圈光晕
 
 **行为**:
-- 关闭(红): 调用 IPC `window:close` → `mainWindow.close()`
-- 最小化(黄): 调用 IPC `window:minimize` → `mainWindow.minimize()`
-- 最大化(绿): 调用 IPC `window:maximize` → `mainWindow.maximize()`，全屏最大化
+- 关闭(红): 复用现有 `WINDOW_COLLAPSE_PET` IPC，收起到宠物模式（非退出应用）
+- 最小化(黄): 调用新增 IPC `window:minimize` → `mainWindow.minimize()`
+- 最大化(绿): 调用新增 IPC `window:maximize` → `mainWindow.maximize()`，全屏最大化
 
 ### 5. IconStrip 变更
 
@@ -185,7 +185,6 @@ Sidebar (flex-col)
 |------|------|------|
 | `window:minimize` | renderer → main | 最小化窗口 |
 | `window:maximize` | renderer → main | 最大化/还原窗口 |
-| `window:close` | renderer → main | 关闭窗口（如果不用 `window.close()`） |
 
 ### 8. 涉及文件
 
