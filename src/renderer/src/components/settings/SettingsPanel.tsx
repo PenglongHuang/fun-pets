@@ -357,7 +357,7 @@ export default function SettingsPanel() {
   }
 
   return (
-    <div className="flex flex-col" style={{ position: 'relative' }}>
+    <div className="flex flex-col" style={{ position: 'relative', maxWidth: 520, margin: '0 auto', width: '100%' }}>
       <ToastContainer />
 
       {/* Unsaved changes bar + Save button */}

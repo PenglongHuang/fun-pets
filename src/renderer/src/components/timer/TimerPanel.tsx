@@ -95,7 +95,7 @@ export default function TimerPanel() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.35 }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}
         >
           <StatCard value={timer.todayCount} label="完成轮数" color="var(--accent-teal)" bgColor="rgba(100,210,255,0.10)" />
           <StatCard value={timer.todayMinutes} label="专注分钟" color="var(--accent-blue)" bgColor="rgba(10,132,255,0.10)" />
