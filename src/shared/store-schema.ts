@@ -28,6 +28,9 @@ export interface StoreSchema {
     durationMinutes: number
     planId?: string
   }>
+  window: {
+    expandedSize: { width: number; height: number }
+  }
 }
 
 export const storeDefaults: StoreSchema = {
@@ -39,4 +42,7 @@ export const storeDefaults: StoreSchema = {
   },
   timer: { status: 'idle', phase: 'focus', remainingMs: 0, totalMs: 0, timestamp: '', round: 0 },
   timerHistory: [],
+  window: {
+    expandedSize: { width: 480, height: 680 },
+  },
 }
