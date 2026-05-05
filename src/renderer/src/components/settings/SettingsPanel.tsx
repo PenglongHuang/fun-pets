@@ -2,7 +2,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { usePlanStore } from '@/stores/planStore'
 import { useNoteStore } from '@/stores/noteStore'
 import { dialog, fs, store } from '@/lib/ipc'
-import { FolderOpen, Timer, Zap, Database, Check } from 'lucide-react'
+import { FolderOpen, Timer, Zap, Database, Check, Pencil } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/common/Toast'
 
@@ -288,6 +288,8 @@ export default function SettingsPanel() {
 
   const plans = usePlanStore((s) => s.plans)
   const notes = useNoteStore((s) => s.notes)
+  const tocMaxLevel = useNoteStore((s) => s.tocMaxLevel)
+  const setTocMaxLevel = useNoteStore((s) => s.setTocMaxLevel)
 
   const handleExportJSON = async () => {
     try {
@@ -611,6 +613,22 @@ export default function SettingsPanel() {
             {app.quickCaptureHotkey}
           </span>
         </div>
+      </SettingsGroup>
+
+      {/* ===== Editor Group ===== */}
+      <SettingsGroup
+        icon={<Pencil size={16} />}
+        title="编辑器"
+        iconColor="var(--accent-teal)"
+      >
+        <NumberInputRow
+          label="目录显示层级"
+          value={tocMaxLevel}
+          unit="级"
+          min={1}
+          max={6}
+          onChange={setTocMaxLevel}
+        />
       </SettingsGroup>
 
       {/* ===== Data Management Group ===== */}
