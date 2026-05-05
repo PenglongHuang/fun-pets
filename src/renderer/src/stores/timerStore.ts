@@ -33,6 +33,7 @@ interface TimerStore {
   _loadHistory: () => Promise<void>
   setPendingPlanId: (id: string | null) => void
   startWithPlan: (planId: string) => void
+  getPlanFocusMinutes: (planId: string) => number
 }
 
 export const useTimerStore = create<TimerStore>()(
@@ -228,6 +229,12 @@ export const useTimerStore = create<TimerStore>()(
     startWithPlan: (planId) => {
       set({ pendingPlanId: planId, lastSelectedPlanId: planId })
       get().start()
+    },
+
+    getPlanFocusMinutes: (planId) => {
+      return get().history
+        .filter((h) => h.planId === planId)
+        .reduce((sum, h) => sum + h.durationMinutes, 0)
     },
   }))
 )
