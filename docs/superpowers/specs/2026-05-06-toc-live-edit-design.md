@@ -92,41 +92,114 @@
 ### 影响组件
 
 - `NoteEditor` — 添加目录面板和触发按钮
-- `PlanEditor`（如有内容编辑）— 同上
 - 新增 `TableOfContents` — 目录面板组件
 - `Sidebar` 布局 — 在编辑器左侧预留独立侧栏位置
 - 设置页 — 添加目录显示层级配置项
+- 说明：计划（Plan）目前不支持自由 Markdown 内容编辑（仅有 PlanEditDialog 编辑元数据），因此 TOC 和实时模式暂不适用于计划功能
+
+### 触发/关闭（补充）
+
+- 目录面板宽度 140px（兼顾 CJK 标题文本的可读性）
+- 推入/推出动画：宽度从 0 到 140px，duration 200ms，easing `var(--ease-spring)`（与现有 Motion 动画一致）
+- 编辑模式下未保存内容（dirty）指示点在三种模式中均显示（当前仅在 edit 模式显示）
 
 ---
 
 ## 三、设置项
 
-在设置页添加：
+在设置页"编辑器"分组中添加：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | tocMaxLevel | number | 3 | 目录显示的最大标题层级 (1-6) |
 
+- 存储方式：与现有 `notePrefs` 一致，使用 `store.get/set('notePrefs')`
+- 修改后立即生效，无需额外保存操作
+
 ---
 
-## 四、技术要点
+## 四、状态持久化
 
-### 实时模式实现思路
+| 状态 | 持久化 | 存储位置 | 说明 |
+|------|--------|----------|------|
+| 编辑模式 (live/edit/preview) | 全局持久化 | `notePrefs.editorMode` | 所有笔记共享同一模式偏好 |
+| TOC 面板可见性 | 不持久化 | 组件 state | 每次打开编辑器默认关闭，避免窄面板下空间紧张 |
 
-- 将 Markdown 文档按块（block）拆分：标题、段落、列表、代码块等
-- 每个块独立管理渲染/编辑状态
-- 光标所在块显示为 textarea（源码），其余块显示为渲染后的 HTML
-- 块切换时保持光标位置和滚动位置
+---
 
-### 目录解析
+## 五、技术要点
 
-- 从 Markdown 源码中提取 `#` 标题行
-- 支持实时解析（内容变化时重新提取）
-- 在实时模式和代码模式中均可解析（从源码提取）
-- 在预览模式中从渲染后的 DOM 提取或从源码提取
+### 独立侧栏布局（解决 B1）
 
-### 独立侧栏布局
+当前 Sidebar 布局：`PanelRouter (flex-1) | Divider | IconStrip (72px fixed)`
 
-- 在 Sidebar 组件中，编辑器面板左侧增加可选的侧栏插槽
-- 该插槽通过状态控制显示/隐藏
-- 插槽内容可替换（当前为 TOC，未来可扩展）
+新布局策略：**侧栏窗口整体加宽**。当 TOC 面板打开时，通过 IPC 通知主进程调整窗口宽度（+140px），关闭时恢复。编辑区 `PanelRouter` 的 `flex-1` 宽度保持不变。
+
+具体实现：
+1. Sidebar 组件内部增加可选的左侧插槽区域（140px 或 0）
+2. 插槽通过 flex 布局插入到 PanelRouter 左侧：`[TOC 插槽] | [PanelRouter] | [Divider] | [IconStrip]`
+3. 插槽显示时，通过 `ipcRenderer.send('resize-sidebar', { widthDelta: 140 })` 通知主进程加宽窗口
+4. 插槽隐藏时，发送 `{ widthDelta: -140 }` 恢复窗口宽度
+5. 主进程通过 `BrowserWindow.setSize()` 调整窗口尺寸
+6. 添加屏幕边界检测：如果窗口右侧已贴近屏幕边缘，向左位移避免溢出
+
+这样编辑区宽度在两种状态下完全一致。
+
+### 实时模式技术设计
+
+**DOM 方案：textarea-per-block（非 contentEditable）**
+
+选择理由：与现有 MarkdownEditor（textarea）保持一致，复用现有的事件处理和自动保存逻辑，避免 contentEditable 的跨浏览器兼容性问题。
+
+**块解析器 (BlockParser)**：
+- 输入：完整 Markdown 源码字符串
+- 输出：`Block[]` 数组，每个 Block 包含 `{ type, content, startOffset, endOffset }`
+- 支持的块类型：`heading`、`paragraph`、`list`（整体为一个块）、`code`（围栏代码块整体）、`blockquote`、`table`、`hr`、`html`
+- 使用简单的行级扫描：空行分隔段落，`#` 开头识别标题，` ``` ` 开头识别代码块等
+- 块解析器为纯函数，可独立测试
+
+**每块渲染策略**：
+- 活跃块（光标所在）：渲染为 `<textarea>`，高度自适应内容
+- 非活跃块：通过 `marked` 渲染为 HTML（复用 MarkdownPreview 的渲染逻辑）
+
+**光标/选区处理**：
+- 追踪当前活跃块的 index
+- `onFocus` 某块 → 设为活跃，显示 textarea
+- `onBlur` 某块 → 设为非活跃，渲染 HTML
+- 选区跨块时，以选区起点所在块为活跃块
+
+**滚动位置保持**：
+- 块从源码切换到渲染（或反向）时高度可能变化
+- 记录切换前视口顶部对应的文档位置（距文档顶部的像素偏移）
+- 切换后恢复该位置
+
+**撤销/重做**：
+- 不使用浏览器原生 undo（每个 textarea 有独立 undo 栈会导致混乱）
+- 维护一个全局 undo 栈：每次块内容变更时，记录 `{ blockIndex, oldContent, newContent }`
+- Ctrl+Z / Ctrl+Shift+Z 触发全局撤销/重做
+
+**自动保存**：
+- 与现有 NoteEditor 行为一致：每次内容变更重置 3 秒定时器
+- 保存时拼接所有块的源码为完整 Markdown 字符串
+- Ctrl+S 立即保存
+
+### 目录解析与当前标题追踪
+
+**解析**：
+- 在代码模式和实时模式中：从完整 Markdown 源码中用正则提取 `^(#{1,6})\s+(.+)$` 行
+- 在预览模式中：同样从源码提取（编辑器持有源码引用）
+
+**当前标题追踪**：
+- 代码模式：根据 textarea 的 `selectionStart` 字符偏移量，匹配到包含该偏移的标题范围
+- 实时模式：根据活跃块的 index，向上查找最近的标题块
+- 预览模式：基于滚动位置，使用 `IntersectionObserver` 监听渲染后的标题元素可见性，高亮视口最顶部可见的标题
+
+---
+
+## 六、快捷键
+
+| 快捷键 | 功能 | 备注 |
+|--------|------|------|
+| Ctrl+Shift+O | 切换目录面板 | 已检查：不与 Electron DevTools 冲突（DevTools 使用 Ctrl+Shift+C） |
+| Ctrl+S | 保存 | 现有，三种模式通用 |
+| Ctrl+Z / Ctrl+Shift+Z | 撤销/重做 | 实时模式使用全局 undo 栈 |
