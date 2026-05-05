@@ -65,14 +65,14 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
   const chipStyle = (isActive: boolean): React.CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 5,
-    padding: '5px 10px',
-    borderRadius: 8,
-    fontSize: 12,
+    gap: 3,
+    padding: '3px 10px',
+    borderRadius: 999,
+    fontSize: 10,
     fontWeight: isActive ? 500 : 400,
-    background: isActive ? 'rgba(138,180,248,0.15)' : 'transparent',
+    background: isActive ? 'rgba(138,180,248,0.15)' : 'rgba(255,255,255,0.04)',
     color: isActive ? '#8ab4f8' : '#888',
-    border: isActive ? '1px solid rgba(138,180,248,0.25)' : '1px solid #333',
+    border: isActive ? '0.5px solid rgba(138,180,248,0.25)' : '0.5px solid rgba(255,255,255,0.06)',
     cursor: 'pointer',
     transition: 'color 0.2s ease, background 0.2s ease, border-color 0.2s ease',
     flexShrink: 0,
@@ -80,39 +80,36 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
   })
 
   const countBadgeStyle = (isActive: boolean): React.CSSProperties => ({
-    background: isActive ? 'rgba(138,180,248,0.25)' : '#2a2a3e',
-    color: isActive ? '#6a9fd8' : 'inherit',
-    padding: '1px 6px',
-    borderRadius: 6,
-    fontSize: 10,
+    fontSize: 9,
+    opacity: isActive ? 0.7 : 0.5,
   })
 
   const dotStyle = (isActive: boolean): React.CSSProperties => ({
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: '50%',
-    background: isActive ? '#8ab4f8' : '#666',
+    background: isActive ? '#8ab4f8' : '#888',
     flexShrink: 0,
   })
 
   const arrowButtonStyle = (visible: boolean): React.CSSProperties => ({
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    border: '1px solid #333',
-    background: '#252540',
-    color: visible ? '#8ab4f8' : 'transparent',
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    border: 'none',
+    background: 'transparent',
+    color: visible ? '#888' : 'transparent',
     cursor: visible ? 'pointer' : 'default',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    transition: 'color 0.2s ease',
+    transition: 'color 0.15s ease',
     padding: 0,
   })
 
   return (
-    <div className="flex items-center shrink-0" style={{ gap: 4 }}>
+    <div className="flex items-center" style={{ gap: 4 }}>
       {canScrollLeft && (
         <button
           onClick={() => scroll('left')}
@@ -141,7 +138,7 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
           style={chipStyle(activeTag === null)}
         >
           <svg width="8" height="8" viewBox="0 0 16 16">
-            <circle cx="8" cy="8" r="3" fill={activeTag === null ? '#8ab4f8' : '#666'} />
+            <circle cx="8" cy="8" r="3" fill={activeTag === null ? '#8ab4f8' : '#888'} />
           </svg>
           全部
           <span style={countBadgeStyle(activeTag === null)}>{totalItems}</span>
@@ -158,7 +155,7 @@ export default function TagFilterBar({ tags, activeTag, totalItems, onSelect, on
               style={chipStyle(isActive)}
             >
               <svg width="8" height="8" viewBox="0 0 16 16">
-                <circle cx="8" cy="8" r="3" fill={isActive ? '#8ab4f8' : '#666'} />
+                <circle cx="8" cy="8" r="3" fill={isActive ? '#8ab4f8' : '#888'} />
               </svg>
               <span style={{ maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                 {name}
