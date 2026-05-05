@@ -59,23 +59,39 @@ export default function TimerPanel() {
           status={timer.status}
         />
 
-        {timer.pendingPlanId && (() => {
-          const plan = plans.find((p) => p.id === timer.pendingPlanId)
-          if (!plan) return null
+        {timer.status !== 'idle' && (() => {
+          if (timer.pendingPlanId) {
+            const plan = plans.find((p) => p.id === timer.pendingPlanId)
+            if (!plan) return null
+            return (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  fontSize: 11, fontWeight: 500,
+                  padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                  background: `${plan.color}15`, color: plan.color,
+                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                }}
+              >
+                {plan.title}
+              </motion.div>
+            )
+          }
           return (
             <motion.div
-              key={plan.id}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
                 fontSize: 11, fontWeight: 500,
                 padding: '3px 10px', borderRadius: 'var(--radius-full)',
-                background: `${plan.color}15`, color: plan.color,
-                maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)',
                 textAlign: 'center',
               }}
             >
-              {plan.title}
+              🎯 自由专注
             </motion.div>
           )
         })()}
@@ -95,7 +111,7 @@ export default function TimerPanel() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.35 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}
+          style={{ display: 'flex', justifyContent: 'center', gap: 10 }}
         >
           <StatCard value={timer.todayCount} label="完成轮数" color="var(--accent-teal)" bgColor="rgba(100,210,255,0.10)" />
           <StatCard value={timer.todayMinutes} label="专注分钟" color="var(--accent-blue)" bgColor="rgba(10,132,255,0.10)" />
