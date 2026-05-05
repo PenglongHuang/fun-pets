@@ -1,26 +1,16 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNoteStore } from '@/stores/noteStore'
-import { Plus, Trash2, CheckSquare, Square, FileText } from 'lucide-react'
+import { Plus, Trash2, CheckSquare, Square, FileText, LayoutGrid, Grid3X3, Clock, ArrowDownAZ } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
-import ListToolbar, { type ViewMode } from '@/components/common/ListToolbar'
+import SortDropdown from '@/components/common/ListToolbar'
 import { getAllTags, getTagsWithCounts } from '@/lib/tag-utils'
-import { fs } from '@/lib/ipc'
 import { usePlanStore } from '@/stores/planStore'
 import { useToastStore } from '@/stores/toastStore'
 import NoteEditor from './NoteEditor'
 import { Button, ContextMenu, ConfirmDialog, TagBadge, MoreButton } from '@/components/ui'
 
-function formatRelativeDate(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
-  if (diffDays === 0) return '今天'
-  if (diffDays === 1) return '昨天'
-  if (diffDays < 7) return `${diffDays}天前`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
+type ViewMode = 'card' | 'compact'
 
 export default function NotesPanel() {
   const notes = useNoteStore((s) => s.notes)
@@ -67,28 +57,6 @@ export default function NotesPanel() {
     }
     return sorted
   }, [filteredNotes, sortBy])
-
-  const [snippets, setSnippets] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (viewMode === 'compact') return
-    const loadSnippets = async () => {
-      const newSnippets: Record<string, string> = {}
-      for (const note of filteredNotes) {
-        try {
-          const content = await fs.readFile(note.filePath)
-          const firstLine = content.split('\n').find((l: string) => l.trim().length > 0 && !l.startsWith('#'))?.trim() ?? ''
-          if (firstLine) newSnippets[note.id] = firstLine.slice(0, 80)
-        } catch { /* ignore */ }
-      }
-      setSnippets((prev) => {
-        const changed = Object.keys(newSnippets).some((k) => newSnippets[k] !== prev[k])
-          || Object.keys(prev).some((k) => !(k in newSnippets))
-        return changed ? newSnippets : prev
-      })
-    }
-    loadSnippets()
-  }, [filteredNotes, viewMode])
 
   const handleCreate = async () => {
     const note = await createNote('新笔记')
@@ -225,39 +193,84 @@ export default function NotesPanel() {
         )}
       </div>
 
-      {/* Tag filter bar */}
-      {tagFilterItems.length > 0 && (
-        <TagFilterBar
-          tags={tagFilterItems}
-          activeTag={activeTag}
-          totalItems={notes.length}
-          onSelect={setActiveTag}
-          onRenameTag={handleRenameTag}
-          onDeleteTag={handleDeleteTag}
-        />
-      )}
-
-      {/* Toolbar: sort + view mode */}
-      {!editMode && sortedNotes.length > 0 && (
-        <ListToolbar
-          sortOptions={[
-            { value: 'time', label: '时间' },
-            { value: 'name', label: '名称' },
-          ]}
-          currentSort={sortBy}
-          onSortChange={(v) => setSortBy(v as 'time' | 'name')}
-          currentView={viewMode}
-          onViewChange={setViewMode}
-        />
-      )}
+      {/* Merged toolbar row: tags + sort + view toggle */}
+      {tagFilterItems.length > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TagFilterBar
+              tags={tagFilterItems}
+              activeTag={activeTag}
+              totalItems={notes.length}
+              onSelect={setActiveTag}
+              onRenameTag={handleRenameTag}
+              onDeleteTag={handleDeleteTag}
+            />
+          </div>
+          {!editMode && (
+            <>
+              <SortDropdown
+                sortOptions={[
+                  { value: 'time', label: '时间', icon: <Clock size={12} /> },
+                  { value: 'name', label: '名称', icon: <ArrowDownAZ size={12} /> },
+                ]}
+                currentSort={sortBy}
+                onSortChange={(v) => setSortBy(v as 'time' | 'name')}
+              />
+              <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button onClick={() => setViewMode('card')} style={{
+                  padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                  background: viewMode === 'card' ? 'var(--accent-blue)' : 'transparent',
+                  color: viewMode === 'card' ? '#fff' : 'var(--text-quaternary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}><LayoutGrid size={11} /></button>
+                <button onClick={() => setViewMode('compact')} style={{
+                  padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                  background: viewMode === 'compact' ? 'var(--accent-blue)' : 'transparent',
+                  color: viewMode === 'compact' ? '#fff' : 'var(--text-quaternary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}><Grid3X3 size={11} /></button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : !editMode && sortedNotes.length > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+          <SortDropdown
+            sortOptions={[
+              { value: 'time', label: '时间', icon: <Clock size={12} /> },
+              { value: 'name', label: '名称', icon: <ArrowDownAZ size={12} /> },
+            ]}
+            currentSort={sortBy}
+            onSortChange={(v) => setSortBy(v as 'time' | 'name')}
+          />
+          <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button onClick={() => setViewMode('card')} style={{
+              padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
+              background: viewMode === 'card' ? 'var(--accent-blue)' : 'transparent',
+              color: viewMode === 'card' ? '#fff' : 'var(--text-quaternary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s ease, color 0.15s ease',
+            }}><LayoutGrid size={11} /></button>
+            <button onClick={() => setViewMode('compact')} style={{
+              padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
+              background: viewMode === 'compact' ? 'var(--accent-blue)' : 'transparent',
+              color: viewMode === 'compact' ? '#fff' : 'var(--text-quaternary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s ease, color 0.15s ease',
+            }}><Grid3X3 size={11} /></button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Note cards + empty state */}
       <div className="flex-1 min-h-0" style={
         viewMode === 'compact'
           ? { display: 'grid' as const, gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, alignContent: 'start' }
-          : viewMode === 'card'
-            ? { display: 'flex' as const, flexDirection: 'column' as const, gap: 8 }
-            : { display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }
+          : { display: 'flex' as const, flexDirection: 'column' as const, gap: 8 }
       }>
         {sortedNotes.map((note) => {
           const isSelected = selectedIds.has(note.id)
@@ -292,13 +305,11 @@ export default function NotesPanel() {
                   >
                     {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
                   </button>
-                ) : (
-                  <FileText size={16} color={note.color} style={{ marginBottom: 2 }} />
-                )}
+                ) : null}
                 <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {note.title}
                 </span>
-                <span style={{ fontSize: 8, color: 'var(--text-quaternary)', marginTop: 2, display: 'block' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-quaternary)', marginTop: 2, display: 'block' }}>
                   {new Date(note.createdAt).getMonth() + 1}/{new Date(note.createdAt).getDate()} 创建
                 </span>
               </motion.div>
@@ -306,88 +317,6 @@ export default function NotesPanel() {
           }
 
           // Card view (large)
-          if (viewMode === 'card') {
-            return (
-              <motion.div
-                key={note.id}
-                onClick={() => {
-                  if (editMode) toggleSelect(note.id)
-                  else setActiveNote(note.id)
-                }}
-                whileTap={{ scale: 0.98 }}
-                className="group"
-                style={{
-                  background: isSelected ? 'rgba(10,132,255,0.06)' : 'var(--bg-secondary)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 12,
-                  border: isSelected ? '0.5px solid rgba(10,132,255,0.20)' : '0.5px solid rgba(255,255,255,0.04)',
-                  borderLeft: `3px solid ${note.color}`,
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease, border-color 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!editMode) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!editMode) {
-                    e.currentTarget.style.background = 'var(--bg-secondary)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
-                  }
-                }}
-              >
-                {/* Title row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  {editMode ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleSelect(note.id) }}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
-                        flexShrink: 0, transition: 'color 0.15s ease',
-                      }}
-                    >
-                      {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                    </button>
-                  ) : (
-                    <FileText size={14} color={note.color} />
-                  )}
-                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{note.title}</span>
-                </div>
-
-                {/* Snippet - 2 lines */}
-                {snippets[note.id] && (
-                  <div style={{
-                    fontSize: 10, color: 'var(--text-quaternary)', marginBottom: 6, lineHeight: 1.4,
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  }}>
-                    {snippets[note.id]}
-                  </div>
-                )}
-
-                {/* Bottom row: tags + time */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {(note.tags ?? []).slice(0, 3).map(tag => <TagBadge key={tag} tag={tag} />)}
-                  </div>
-                  <span style={{ fontSize: 9, color: 'var(--text-quaternary)' }}>{formatRelativeDate(note.updatedAt)}更新</span>
-                </div>
-
-                {/* More button */}
-                {!editMode && (
-                  <MoreButton onClick={(e) => {
-                    e.stopPropagation()
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    setContextMenu({ noteId: note.id, rect })
-                  }} />
-                )}
-              </motion.div>
-            )
-          }
-
-          // List view (default)
           return (
             <motion.div
               key={note.id}
@@ -398,81 +327,52 @@ export default function NotesPanel() {
               whileTap={{ scale: 0.98 }}
               className="group"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '10px 12px',
+                background: isSelected ? 'rgba(10,132,255,0.06)' : 'var(--bg-secondary)',
                 borderRadius: 'var(--radius-md)',
-                background: isSelected
-                  ? 'rgba(10,132,255,0.06)'
-                  : 'var(--bg-secondary)',
-                border: isSelected
-                  ? '0.5px solid rgba(10,132,255,0.20)'
-                  : '0.5px solid rgba(255,255,255,0.04)',
+                padding: 12,
+                border: isSelected ? '0.5px solid rgba(10,132,255,0.20)' : '0.5px solid rgba(255,255,255,0.04)',
+                borderLeft: `3px solid ${note.color}`,
                 cursor: 'pointer',
-                transition: 'background 0.2s ease, border-color 0.2s ease',
+                transition: 'background 0.2s ease',
+                position: 'relative',
               }}
               onMouseEnter={(e) => {
-                if (!editMode) {
+                if (!editMode && !isSelected) {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
                 }
               }}
               onMouseLeave={(e) => {
-                if (!editMode) {
+                if (!editMode && !isSelected) {
                   e.currentTarget.style.background = 'var(--bg-secondary)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
                 }
               }}
             >
-              {/* Left: checkbox or icon */}
-              {editMode ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(note.id) }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
-                    flexShrink: 0,
-                    transition: 'color 0.15s ease',
-                  }}
-                >
-                  {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                </button>
-              ) : (
-                <div style={{ flexShrink: 0, color: note.color, display: 'flex' }}>
-                  <FileText size={14} color={note.color} />
-                </div>
-              )}
+              {/* Title row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                {editMode ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleSelect(note.id) }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
+                      flexShrink: 0, transition: 'color 0.15s ease',
+                    }}
+                  >
+                    {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                  </button>
+                ) : null}
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{note.title}</span>
+              </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  className="truncate"
-                  style={{
-                    font: 'var(--text-caption-1)',
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {note.title}
-                </span>
-                <span style={{ fontSize: 9, color: 'var(--text-quaternary)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {snippets[note.id] ?? ''}
-                </span>
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0 }}>
-                  {formatRelativeDate(note.updatedAt)}
-                </span>
+              {/* Creation date */}
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                🗓 {new Date(note.createdAt).getMonth() + 1}月{new Date(note.createdAt).getDate()}日创建
               </div>
 
               {/* Tags */}
               {(note.tags ?? []).length > 0 && (
-                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                  {(note.tags ?? []).slice(0, 3).map((tag) => (
-                    <TagBadge key={tag} tag={tag} />
-                  ))}
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
+                  {(note.tags ?? []).slice(0, 3).map(tag => <TagBadge key={tag} tag={tag} />)}
                   {(note.tags ?? []).length > 3 && (
                     <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
                       +{(note.tags ?? []).length - 3}
@@ -481,13 +381,18 @@ export default function NotesPanel() {
                 </div>
               )}
 
-              {/* More button */}
+              {/* Actions on hover */}
               {!editMode && (
-                <MoreButton onClick={(e) => {
-                  e.stopPropagation()
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  setContextMenu({ noteId: note.id, rect })
-                }} />
+                <div className="flex items-center opacity-0 group-hover:opacity-100" style={{
+                  position: 'absolute', bottom: 8, right: 8,
+                  transition: 'opacity 0.15s ease',
+                }}>
+                  <MoreButton onClick={(e) => {
+                    e.stopPropagation()
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setContextMenu({ noteId: note.id, rect })
+                  }} />
+                </div>
               )}
             </motion.div>
           )
