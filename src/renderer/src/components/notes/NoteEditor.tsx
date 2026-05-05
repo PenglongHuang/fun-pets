@@ -46,6 +46,7 @@ export default function NoteEditor() {
   dirtyRef.current = dirty
   const tocVisibleRef = useRef(tocVisible)
   tocVisibleRef.current = tocVisible
+  const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
 
   const { showToast, ToastContainer } = useToast()
@@ -107,6 +108,18 @@ export default function NoteEditor() {
     }
   }, [])
 
+  // Ctrl+Shift+O handler — toggle TOC
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'O') {
+        e.preventDefault()
+        toggleTocRef.current()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   if (!note) return null
 
   const handleChange = (newContent: string) => {
@@ -127,6 +140,7 @@ export default function NoteEditor() {
       await windowApi.resizeForSidePanel(-140)
     }
   }
+  toggleTocRef.current = toggleToc
 
   const handleHeadingClick = (lineIndex: number) => {
     setCurrentLineIndex(lineIndex)
