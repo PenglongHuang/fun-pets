@@ -3,10 +3,24 @@ import { useNoteStore } from '@/stores/noteStore'
 import { Plus, Trash2, CheckSquare, Square, FileText } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
+import ListToolbar, { type ViewMode } from '@/components/common/ListToolbar'
 import { getAllTags, getTagsWithCounts } from '@/lib/tag-utils'
+import { fs } from '@/lib/ipc'
 import { usePlanStore } from '@/stores/planStore'
 import { useToastStore } from '@/stores/toastStore'
 import NoteEditor from './NoteEditor'
+import { Button, ContextMenu, ConfirmDialog, TagBadge, MoreButton } from '@/components/ui'
+
+function formatRelativeDate(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
+  if (diffDays < 7) return `${diffDays}天前`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
 
 export default function NotesPanel() {
   const notes = useNoteStore((s) => s.notes)
@@ -22,10 +36,16 @@ export default function NotesPanel() {
   const renamePlanTag = usePlanStore((s) => s.renameTag)
   const deletePlanTag = usePlanStore((s) => s.deleteTag)
 
+  const sortBy = useNoteStore((s) => s.sortBy)
+  const viewMode = useNoteStore((s) => s.viewMode)
+  const setSortBy = useNoteStore((s) => s.setSortBy)
+  const setViewMode = useNoteStore((s) => s.setViewMode)
+
   const [editMode, setEditMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'batch'; id?: string } | null>(null)
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ noteId: string; rect: DOMRect } | null>(null)
 
   useEffect(() => { load() }, [load])
 
@@ -35,6 +55,40 @@ export default function NotesPanel() {
     if (activeTag === null) return notes
     return notes.filter((n) => (n.tags ?? []).includes(activeTag))
   }, [notes, activeTag])
+
+  const sortedNotes = useMemo(() => {
+    const sorted = [...filteredNotes]
+    switch (sortBy) {
+      case 'name':
+        sorted.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
+        break
+      default: // 'time'
+        sorted.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    }
+    return sorted
+  }, [filteredNotes, sortBy])
+
+  const [snippets, setSnippets] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (viewMode === 'compact') return
+    const loadSnippets = async () => {
+      const newSnippets: Record<string, string> = {}
+      for (const note of filteredNotes) {
+        try {
+          const content = await fs.readFile(note.filePath)
+          const firstLine = content.split('\n').find((l: string) => l.trim().length > 0 && !l.startsWith('#'))?.trim() ?? ''
+          if (firstLine) newSnippets[note.id] = firstLine.slice(0, 80)
+        } catch { /* ignore */ }
+      }
+      setSnippets((prev) => {
+        const changed = Object.keys(newSnippets).some((k) => newSnippets[k] !== prev[k])
+          || Object.keys(prev).some((k) => !(k in newSnippets))
+        return changed ? newSnippets : prev
+      })
+    }
+    loadSnippets()
+  }, [filteredNotes, viewMode])
 
   const handleCreate = async () => {
     const note = await createNote('新笔记')
@@ -147,21 +201,7 @@ export default function NotesPanel() {
               {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
               <span style={{ fontSize: 12, fontWeight: 500 }}>全选</span>
             </button>
-            <button
-              onClick={exitEditMode}
-              style={{
-                padding: '4px 12px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 12,
-                fontWeight: 500,
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              取消
-            </button>
+            <Button variant="secondary" onClick={exitEditMode}>取消</Button>
           </>
         ) : (
           <>
@@ -170,52 +210,16 @@ export default function NotesPanel() {
             </span>
             <div className="flex items-center gap-1">
               {notes.length > 0 && (
-                <button
-                  onClick={() => setEditMode(true)}
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--text-tertiary)',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'color 0.15s ease, background 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--accent-blue)'
-                    e.currentTarget.style.background = 'rgba(10,132,255,0.10)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-tertiary)'
-                    e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  管理
-                </button>
+                <Button variant="ghost" onClick={() => setEditMode(true)}>管理</Button>
               )}
-              <motion.button
+              <Button
+                variant="primary"
+                icon={<Plus size={13} strokeWidth={2.5} />}
+                motionProps={{ whileTap: { scale: 0.92 }, whileHover: { scale: 1.04 } }}
                 onClick={handleCreate}
-                whileTap={{ scale: 0.92 }}
-                whileHover={{ scale: 1.04 }}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: 'var(--accent-blue)',
-                  color: '#fff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 2px 8px rgba(10,132,255,0.25)',
-                }}
               >
-                <Plus size={13} strokeWidth={2.5} />
                 新建
-              </motion.button>
+              </Button>
             </div>
           </>
         )}
@@ -233,10 +237,157 @@ export default function NotesPanel() {
         />
       )}
 
+      {/* Toolbar: sort + view mode */}
+      {!editMode && sortedNotes.length > 0 && (
+        <ListToolbar
+          sortOptions={[
+            { value: 'time', label: '时间' },
+            { value: 'name', label: '名称' },
+          ]}
+          currentSort={sortBy}
+          onSortChange={(v) => setSortBy(v as 'time' | 'name')}
+          currentView={viewMode}
+          onViewChange={setViewMode}
+        />
+      )}
+
       {/* Note cards + empty state */}
-      <div className="flex-1 min-h-0 flex flex-col" style={{ gap: 4 }}>
-        {filteredNotes.map((note) => {
+      <div className="flex-1 min-h-0" style={
+        viewMode === 'compact'
+          ? { display: 'grid' as const, gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, alignContent: 'start' }
+          : viewMode === 'card'
+            ? { display: 'flex' as const, flexDirection: 'column' as const, gap: 8 }
+            : { display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }
+      }>
+        {sortedNotes.map((note) => {
           const isSelected = selectedIds.has(note.id)
+
+          // Compact view
+          if (viewMode === 'compact') {
+            return (
+              <motion.div
+                key={note.id}
+                onClick={() => {
+                  if (editMode) toggleSelect(note.id)
+                  else setActiveNote(note.id)
+                }}
+                whileTap={{ scale: 0.96 }}
+                style={{
+                  background: isSelected ? 'rgba(10,132,255,0.06)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 8,
+                  textAlign: 'center',
+                  borderTop: `2px solid ${note.color}`,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease',
+                }}
+              >
+                {editMode ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleSelect(note.id) }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
+                    }}
+                  >
+                    {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                  </button>
+                ) : (
+                  <FileText size={16} color={note.color} style={{ marginBottom: 2 }} />
+                )}
+                <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {note.title}
+                </span>
+                <span style={{ fontSize: 8, color: 'var(--text-quaternary)', marginTop: 2, display: 'block' }}>
+                  {new Date(note.createdAt).getMonth() + 1}/{new Date(note.createdAt).getDate()} 创建
+                </span>
+              </motion.div>
+            )
+          }
+
+          // Card view (large)
+          if (viewMode === 'card') {
+            return (
+              <motion.div
+                key={note.id}
+                onClick={() => {
+                  if (editMode) toggleSelect(note.id)
+                  else setActiveNote(note.id)
+                }}
+                whileTap={{ scale: 0.98 }}
+                className="group"
+                style={{
+                  background: isSelected ? 'rgba(10,132,255,0.06)' : 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 12,
+                  border: isSelected ? '0.5px solid rgba(10,132,255,0.20)' : '0.5px solid rgba(255,255,255,0.04)',
+                  borderLeft: `3px solid ${note.color}`,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease, border-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!editMode) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!editMode) {
+                    e.currentTarget.style.background = 'var(--bg-secondary)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
+                  }
+                }}
+              >
+                {/* Title row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  {editMode ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSelect(note.id) }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        color: isSelected ? 'var(--accent-blue)' : 'var(--text-quaternary)',
+                        flexShrink: 0, transition: 'color 0.15s ease',
+                      }}
+                    >
+                      {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                    </button>
+                  ) : (
+                    <FileText size={14} color={note.color} />
+                  )}
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{note.title}</span>
+                </div>
+
+                {/* Snippet - 2 lines */}
+                {snippets[note.id] && (
+                  <div style={{
+                    fontSize: 10, color: 'var(--text-quaternary)', marginBottom: 6, lineHeight: 1.4,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  }}>
+                    {snippets[note.id]}
+                  </div>
+                )}
+
+                {/* Bottom row: tags + time */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {(note.tags ?? []).slice(0, 3).map(tag => <TagBadge key={tag} tag={tag} />)}
+                  </div>
+                  <span style={{ fontSize: 9, color: 'var(--text-quaternary)' }}>{formatRelativeDate(note.updatedAt)}更新</span>
+                </div>
+
+                {/* More button */}
+                {!editMode && (
+                  <MoreButton onClick={(e) => {
+                    e.stopPropagation()
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setContextMenu({ noteId: note.id, rect })
+                  }} />
+                )}
+              </motion.div>
+            )
+          }
+
+          // List view (default)
           return (
             <motion.div
               key={note.id}
@@ -297,7 +448,7 @@ export default function NotesPanel() {
               )}
 
               {/* Content */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span
                   className="truncate"
                   style={{
@@ -308,66 +459,42 @@ export default function NotesPanel() {
                 >
                   {note.title}
                 </span>
-                <div style={{ font: 'var(--text-caption-2)', color: 'var(--text-quaternary)', marginTop: 3 }}>
-                  {new Date(note.updatedAt).toLocaleDateString('zh-CN')}
-                </div>
-                {(note.tags ?? []).length > 0 && (
-                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' as const }}>
-                    {(note.tags ?? []).slice(0, 3).map((tag) => (
-                      <span key={tag} style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        fontSize: 10,
-                        fontWeight: 500,
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        color: '#8ab4f8',
-                        border: '1px solid rgba(138,180,248,0.2)',
-                      }}>
-                        <svg width="8" height="8" viewBox="0 0 16 16">
-                          <circle cx="8" cy="8" r="3" fill="#8ab4f8" />
-                        </svg>
-                        {tag}
-                      </span>
-                    ))}
-                    {(note.tags ?? []).length > 3 && (
-                      <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
-                        +{(note.tags ?? []).length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <span style={{ fontSize: 9, color: 'var(--text-quaternary)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {snippets[note.id] ?? ''}
+                </span>
+                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                  {formatRelativeDate(note.updatedAt)}
+                </span>
               </div>
 
-              {/* Delete */}
+              {/* Tags */}
+              {(note.tags ?? []).length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {(note.tags ?? []).slice(0, 3).map((tag) => (
+                    <TagBadge key={tag} tag={tag} />
+                  ))}
+                  {(note.tags ?? []).length > 3 && (
+                    <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
+                      +{(note.tags ?? []).length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* More button */}
               {!editMode && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'single', id: note.id }) }}
-                  style={{
-                    opacity: 0,
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-quaternary)',
-                    cursor: 'pointer',
-                    padding: 4,
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'opacity 0.15s ease, color 0.15s ease',
-                    flexShrink: 0,
-                  }}
-                  className="group-hover:opacity-100"
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-pink)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-quaternary)' }}
-                >
-                  <Trash2 size={13} />
-                </button>
+                <MoreButton onClick={(e) => {
+                  e.stopPropagation()
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  setContextMenu({ noteId: note.id, rect })
+                }} />
               )}
             </motion.div>
           )
         })}
         {/* Empty state */}
         <AnimatePresence mode="wait">
-          {filteredNotes.length === 0 && !editMode && (
+          {sortedNotes.length === 0 && !editMode && (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 6 }}
@@ -414,106 +541,38 @@ export default function NotesPanel() {
             <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-secondary)', fontWeight: 500 }}>
               已选 {selectedIds.size} 项
             </span>
-            <motion.button
+            <Button
+              variant="danger"
+              motionProps={{ whileTap: { scale: 0.95 } }}
               onClick={handleBatchDelete}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                padding: '5px 16px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: 12,
-                fontWeight: 600,
-                background: 'var(--accent-pink)',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(255,55,95,0.20)',
-              }}
             >
               删除
-            </motion.button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Delete confirmation dialog */}
-      <AnimatePresence>
-        {deleteTarget && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 100,
-            }}
-            onClick={() => setDeleteTarget(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: 280,
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--radius-xl)',
-                padding: 20,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-              }}
-            >
-              <span style={{ font: 'var(--text-headline)', color: 'var(--text-primary)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
-                确认删除
-              </span>
-              <span style={{ font: 'var(--text-caption-1)', color: 'var(--text-secondary)', display: 'block', marginBottom: 20 }}>
-                {deleteTarget.type === 'batch'
-                  ? `确定要删除选中的 ${selectedIds.size} 条笔记吗？此操作不可撤销。`
-                  : '确定要删除这条笔记吗？此操作不可撤销。'}
-              </span>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  style={{
-                    padding: '0 16px',
-                    height: 34,
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  取消
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  style={{
-                    padding: '0 20px',
-                    height: 34,
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: 'var(--accent-pink)',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  删除
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="确认删除"
+        message={deleteTarget?.type === 'batch'
+          ? `确定要删除选中的 ${selectedIds.size} 条笔记吗？此操作不可撤销。`
+          : '确定要删除这条笔记吗？此操作不可撤销。'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {contextMenu && (
+        <ContextMenu
+          items={[
+            { label: '查看详情', icon: <FileText size={13} />, onClick: () => setActiveNote(contextMenu.noteId) },
+            { label: '删除笔记', icon: <Trash2 size={13} />, danger: true, onClick: () => setDeleteTarget({ type: 'single', id: contextMenu.noteId }) },
+          ]}
+          anchorRect={contextMenu.rect}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }
