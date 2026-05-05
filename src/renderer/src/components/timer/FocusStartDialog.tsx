@@ -3,12 +3,17 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X } from 'lucide-react'
 import { usePlanStore } from '@/stores/planStore'
 import { useTimerStore } from '@/stores/timerStore'
+import { formatFocusTime } from '@/lib/format-time'
 
-const TYPE_BADGE: Record<string, { bg: string; label: string }> = {
-  daily: { bg: 'rgba(96,165,250,0.12)', label: '日' },
-  weekly: { bg: 'rgba(192,132,252,0.12)', label: '周' },
-  monthly: { bg: 'rgba(251,191,36,0.12)', label: '月' },
-  neutral: { bg: 'rgba(148,163,184,0.12)', label: '其他' },
+function formatShortDate(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+function formatDateRange(startDate: string, endDate: string | null): string {
+  const s = formatShortDate(startDate)
+  const e = endDate ? formatShortDate(endDate) : null
+  return e && e !== s ? `${s} - ${e}` : s
 }
 
 interface FocusStartDialogProps {
@@ -20,11 +25,12 @@ export default function FocusStartDialog({ onCancel }: FocusStartDialogProps) {
   const lastSelectedPlanId = useTimerStore((s) => s.lastSelectedPlanId)
   const startWithPlan = useTimerStore((s) => s.startWithPlan)
   const start = useTimerStore((s) => s.start)
+  const getPlanFocusMinutes = useTimerStore((s) => s.getPlanFocusMinutes)
   const sortedPlans = [...plans].sort((a, b) =>
     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
 
-  const defaultPlanId = lastSelectedPlanId ?? sortedPlans[0]?.id ?? null
+  const defaultPlanId = lastSelectedPlanId ?? null
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(defaultPlanId)
 
   const handleStart = () => {
@@ -91,13 +97,42 @@ export default function FocusStartDialog({ onCancel }: FocusStartDialogProps) {
 
           {/* Plan list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', marginBottom: 14 }}>
+            {/* Free focus option */}
+            <motion.div
+              onClick={() => setSelectedPlanId(null)}
+              whileTap={{ scale: 0.98 }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                background: selectedPlanId === null ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                border: selectedPlanId === null ? '1px dashed rgba(10,132,255,0.5)' : '1px solid rgba(255,255,255,0.04)',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>🎯</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 500,
+                  color: selectedPlanId === null ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  display: 'block',
+                }}>
+                  自由专注
+                </span>
+                <span style={{ fontSize: 9, color: 'var(--text-quaternary)', display: 'block' }}>
+                  不关联任何计划
+                </span>
+              </div>
+              {selectedPlanId === null && (
+                <span style={{ color: 'var(--accent-blue)', fontSize: 12, flexShrink: 0 }}>✓</span>
+              )}
+            </motion.div>
+
             {sortedPlans.map((plan) => {
-              const badge = TYPE_BADGE[plan.planType || 'daily']
               const isSelected = selectedPlanId === plan.id
               return (
                 <motion.div
                   key={plan.id}
-                  onClick={() => setSelectedPlanId(isSelected ? null : plan.id)}
+                  onClick={() => setSelectedPlanId(plan.id)}
                   whileTap={{ scale: 0.98 }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
@@ -112,12 +147,10 @@ export default function FocusStartDialog({ onCancel }: FocusStartDialogProps) {
                     <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {plan.title}
                     </span>
-                  </div>
-                  {badge && (
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 'var(--radius-full)', background: badge.bg, color: plan.color, flexShrink: 0 }}>
-                      {badge.label}
+                    <span style={{ fontSize: 9, color: 'var(--text-quaternary)' }}>
+                      {formatDateRange(plan.startDate, plan.endDate)} · ⏱ {formatFocusTime(getPlanFocusMinutes(plan.id))}
                     </span>
-                  )}
+                  </div>
                   {isSelected && (
                     <span style={{ color: plan.color, fontSize: 12, flexShrink: 0 }}>✓</span>
                   )}
