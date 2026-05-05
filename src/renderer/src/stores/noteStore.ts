@@ -10,7 +10,9 @@ interface NoteStore {
   loaded: boolean
   activeNoteId: string | null
   sortBy: 'time' | 'name'
-  viewMode: 'list' | 'card' | 'compact'
+  viewMode: 'card' | 'compact'
+  editorMode: 'live' | 'edit' | 'preview'
+  tocMaxLevel: number
   load: () => Promise<void>
   createNote: (title: string, content?: string, tags?: string[]) => Promise<Note>
   deleteNote: (id: string) => Promise<void>
@@ -23,7 +25,9 @@ interface NoteStore {
   deleteTag: (tagName: string) => Promise<void>
   setActiveNote: (id: string | null) => void
   setSortBy: (sort: 'time' | 'name') => void
-  setViewMode: (mode: 'list' | 'card' | 'compact') => void
+  setViewMode: (mode: 'card' | 'compact') => void
+  setEditorMode: (mode: 'live' | 'edit' | 'preview') => void
+  setTocMaxLevel: (level: number) => void
 }
 
 export const useNoteStore = create<NoteStore>()(
@@ -33,6 +37,8 @@ export const useNoteStore = create<NoteStore>()(
     activeNoteId: null,
     sortBy: 'time',
     viewMode: 'card',
+    editorMode: 'live' as const,
+    tocMaxLevel: 3,
 
     load: async () => {
       try {
@@ -51,9 +57,14 @@ export const useNoteStore = create<NoteStore>()(
         set({ notes: [], loaded: true })
       }
 
-      const prefs = await store.get<{ sortBy: string; viewMode: string }>('notePrefs')
+      const prefs = await store.get<{ sortBy: string; viewMode: string; editorMode?: string; tocMaxLevel?: number }>('notePrefs')
       if (prefs) {
-        set({ sortBy: (prefs.sortBy as any) ?? 'time', viewMode: (prefs.viewMode as any) ?? 'card' })
+        set({
+          sortBy: (prefs.sortBy as any) ?? 'time',
+          viewMode: (prefs.viewMode as any) ?? 'card',
+          editorMode: (prefs.editorMode as 'live' | 'edit' | 'preview') ?? 'live',
+          tocMaxLevel: prefs.tocMaxLevel ?? 3,
+        })
       }
     },
 
@@ -162,12 +173,22 @@ export const useNoteStore = create<NoteStore>()(
 
     setSortBy: (sort) => {
       set({ sortBy: sort })
-      store.set('notePrefs', { sortBy: sort, viewMode: get().viewMode })
+      store.set('notePrefs', { sortBy: sort, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
     },
 
     setViewMode: (mode) => {
       set({ viewMode: mode })
-      store.set('notePrefs', { sortBy: get().sortBy, viewMode: mode })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: mode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
+    },
+
+    setEditorMode: (mode) => {
+      set({ editorMode: mode })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: mode, tocMaxLevel: get().tocMaxLevel })
+    },
+
+    setTocMaxLevel: (level) => {
+      set({ tocMaxLevel: Math.max(1, Math.min(6, level)) })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: level })
     },
   }))
 )
