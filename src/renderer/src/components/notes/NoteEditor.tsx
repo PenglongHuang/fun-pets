@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { useNoteStore } from '@/stores/noteStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
@@ -60,7 +59,6 @@ export default function NoteEditor() {
     () => useNoteStore.getState().editorMode
   )
   const [tocVisible, setTocVisible] = useState(false)
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const [currentLineIndex, setCurrentLineIndex] = useState<number | null>(0)
   const [dirty, setDirty] = useState(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
@@ -68,8 +66,6 @@ export default function NoteEditor() {
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
-  const tocVisibleRef = useRef(tocVisible)
-  tocVisibleRef.current = tocVisible
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
 
@@ -112,10 +108,6 @@ export default function NoteEditor() {
   // Cleanup: save dirty content on unmount
   useEffect(() => {
     return () => {
-      if (tocVisibleRef.current) {
-        usePetStore.getState().setTocVisible(false)
-        windowApi.resizeForSidePanel(-140)
-      }
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
       if (dirtyRef.current) {
         const store = useNoteStore.getState()
@@ -131,22 +123,6 @@ export default function NoteEditor() {
       }
     }
   }, [])
-
-  // Resolve portal target after sidebar creates the slot
-  useEffect(() => {
-    if (tocVisible) {
-      const find = () => document.getElementById('side-panel-slot')
-      const slot = find()
-      if (slot) { setPortalTarget(slot); return }
-      const timer = setTimeout(() => {
-        const el = find()
-        if (el) setPortalTarget(el)
-      }, 60)
-      return () => clearTimeout(timer)
-    } else {
-      setPortalTarget(null)
-    }
-  }, [tocVisible])
 
   // Ctrl+Shift+O handler — toggle TOC
   useEffect(() => {
@@ -170,15 +146,9 @@ export default function NoteEditor() {
     autoSaveTimer.current = setTimeout(() => doSave(true), AUTO_SAVE_DELAY)
   }
 
-  const toggleToc = async () => {
-    const nextVisible = !tocVisible
-    setTocVisible(nextVisible)
-    setTocVisibleGlobal(nextVisible)
-    if (nextVisible) {
-      await windowApi.resizeForSidePanel(140)
-    } else {
-      await windowApi.resizeForSidePanel(-140)
-    }
+  const toggleToc = () => {
+    setTocVisible(!tocVisible)
+    setTocVisibleGlobal(!tocVisible)
   }
   toggleTocRef.current = toggleToc
 
@@ -220,18 +190,16 @@ export default function NoteEditor() {
   }
 
   return (
-    <>
     <div className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
       <ToastContainer />
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <motion.button
-          onClick={async () => {
+          onClick={() => {
             if (tocVisible) {
               setTocVisible(false)
               setTocVisibleGlobal(false)
-              await windowApi.resizeForSidePanel(-140)
             }
             setActiveNote(null)
           }}
@@ -316,26 +284,23 @@ export default function NoteEditor() {
       />
 
       {/* Editor / Preview */}
-      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto' }}>
+      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto', position: 'relative' }}>
         {mode === 'live' ? (
-          <LiveMarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
+          <LiveMarkdownEditor key={activeNoteId} value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
         ) : mode === 'edit' ? (
           <MarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} placeholder="# 标题\n\n内容..." />
         ) : (
           <MarkdownPreview content={content} />
         )}
+        <TableOfContents
+          content={content}
+          maxLevel={tocMaxLevel}
+          currentLineIndex={currentLineIndex}
+          onHeadingClick={handleHeadingClick}
+          onClose={() => { setTocVisible(false); setTocVisibleGlobal(false) }}
+          open={tocVisible}
+        />
       </div>
     </div>
-    {portalTarget && createPortal(
-      <TableOfContents
-        content={content}
-        maxLevel={tocMaxLevel}
-        currentLineIndex={currentLineIndex}
-        onHeadingClick={handleHeadingClick}
-        onClose={toggleToc}
-      />,
-      portalTarget
-    )}
-    </>
   )
 }
