@@ -62,10 +62,11 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
           mode: 'ir',
           toolbar: [],
           counter: { enable: true },
-          outline: { enable: false, position: 'left' },
+          outline: { enable: false },
           placeholder: placeholder ?? '# 标题\n\n内容...',
           theme: 'dark',
           icon: 'ant',
+          cdn: 'https://unpkg.com/vditor@3.11.2/',
           value: initialValueRef.current,
           input: (val) => {
             lastSyncedRef.current = val
@@ -130,7 +131,7 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
 
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
       {loading && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

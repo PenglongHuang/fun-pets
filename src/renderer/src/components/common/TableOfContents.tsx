@@ -50,7 +50,7 @@ export default function TableOfContents({ content, maxLevel, currentLineIndex, o
   if (headings.length === 0) {
     return (
       <div ref={panelRef} style={{
-        position: 'absolute', top: 8, right: 8, zIndex: 50,
+        position: 'absolute', top: 52, right: 8, zIndex: 50,
         width: 200, background: 'rgba(30,30,35,0.95)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -106,7 +106,7 @@ export default function TableOfContents({ content, maxLevel, currentLineIndex, o
 
   return (
     <div ref={panelRef} style={{
-      position: 'absolute', top: 8, right: 8, zIndex: 50,
+      position: 'absolute', top: 52, right: 8, zIndex: 50,
       width: 220, maxHeight: '80%',
       background: 'rgba(30,30,35,0.95)',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',

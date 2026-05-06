@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNoteStore } from '@/stores/noteStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
@@ -10,7 +11,6 @@ import { getAllTags } from '@/lib/tag-utils'
 import { motion } from 'motion/react'
 import { useToast } from '@/components/common/Toast'
 import { extractH1Title } from '@/utils/markdown'
-import { usePetStore } from '@/stores/petStore'
 import { extractHeadings } from '@/lib/toc-extract'
 
 const AUTO_SAVE_DELAY = 3000
@@ -51,7 +51,6 @@ export default function NoteEditor() {
   const allTags = useMemo(() => getAllTags(notes), [notes])
 
   const tocMaxLevel = useNoteStore((s) => s.tocMaxLevel)
-  const setTocVisibleGlobal = usePetStore((s) => s.setTocVisible)
 
   const [content, setContent] = useState('')
   const [mode, setMode] = useState<'live' | 'edit' | 'preview'>(
@@ -67,6 +66,7 @@ export default function NoteEditor() {
   dirtyRef.current = dirty
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -147,7 +147,6 @@ export default function NoteEditor() {
 
   const toggleToc = () => {
     setTocVisible(!tocVisible)
-    setTocVisibleGlobal(!tocVisible)
   }
   toggleTocRef.current = toggleToc
 
@@ -193,7 +192,7 @@ export default function NoteEditor() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
+    <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
       <ToastContainer />
 
       {/* Toolbar */}
@@ -202,7 +201,6 @@ export default function NoteEditor() {
           onClick={() => {
             if (tocVisible) {
               setTocVisible(false)
-              setTocVisibleGlobal(false)
             }
             setActiveNote(null)
           }}
@@ -287,7 +285,7 @@ export default function NoteEditor() {
       />
 
       {/* Editor / Preview */}
-      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto', position: 'relative' }}>
+      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto' }}>
         {mode === 'live' ? (
           <LiveMarkdownEditor key={activeNoteId} value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
         ) : mode === 'edit' ? (
@@ -295,15 +293,20 @@ export default function NoteEditor() {
         ) : (
           <MarkdownPreview content={content} />
         )}
+      </div>
+
+      {/* TOC — portaled to root, completely outside scroll/layout flow */}
+      {rootRef.current && createPortal(
         <TableOfContents
           content={content}
           maxLevel={tocMaxLevel}
           currentLineIndex={currentLineIndex}
           onHeadingClick={handleHeadingClick}
-          onClose={() => { setTocVisible(false); setTocVisibleGlobal(false) }}
+          onClose={() => { setTocVisible(false) }}
           open={tocVisible}
-        />
-      </div>
+        />,
+        rootRef.current
+      )}
     </div>
   )
 }
