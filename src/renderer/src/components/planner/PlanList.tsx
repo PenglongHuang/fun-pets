@@ -3,7 +3,7 @@ import { usePlanStore } from '@/stores/planStore'
 import { Plus, Trash2, CheckSquare, Square, Calendar, CalendarDays, CalendarRange, Play, Timer, FileText, LayoutGrid, Grid3X3, Clock, ArrowDownAZ } from 'lucide-react'
 import TagFilterBar from '@/components/common/TagFilterBar'
 import SortDropdown from '@/components/common/ListToolbar'
-import PlanTypeFilter from '@/components/common/PlanTypeFilter'
+import PlanTypeFilter, { type PlanTypeFilterValue } from '@/components/common/PlanTypeFilter'
 
 type ViewMode = 'card' | 'compact'
 import { formatFocusTime } from '@/lib/format-time'
@@ -69,7 +69,7 @@ export default function PlanList() {
   const [editMode, setEditMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null)
-  const [planTypeFilter, setPlanTypeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all')
+  const [planTypeFilter, setPlanTypeFilter] = useState<PlanTypeFilterValue>('all')
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single'; id: string } | { type: 'batch' } | null>(null)
   const [contextMenu, setContextMenu] = useState<{ planId: string; rect: DOMRect } | null>(null)
   const [editTarget, setEditTarget] = useState<string | null>(null)
@@ -204,7 +204,7 @@ export default function PlanList() {
   return (
     <div className="flex flex-col h-full" style={{ gap: 6, position: 'relative' }}>
       {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0" style={{ overflow: 'hidden' }}>
         {editMode ? (
           <>
             <button
@@ -240,7 +240,6 @@ export default function PlanList() {
               <Button
                 variant="primary"
                 icon={<Plus size={13} strokeWidth={2.5} />}
-                motionProps={{ whileTap: { scale: 0.92 }, whileHover: { scale: 1.04 } }}
                 onClick={() => setShowCreateDialog(true)}
               >
                 新建
@@ -269,7 +268,7 @@ export default function PlanList() {
             />
           </div>
           {!editMode && (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
               <SortDropdown
                 sortOptions={[
                   { value: 'time', label: '时间', icon: <Clock size={12} /> },
@@ -281,14 +280,14 @@ export default function PlanList() {
               />
               <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.06)' }} />
               <div style={{ display: 'flex', gap: 2 }}>
-                <button onClick={() => setViewMode('card')} style={{
+                <button title="卡片视图" onClick={() => setViewMode('card')} style={{
                   padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: viewMode === 'card' ? 'var(--accent-blue)' : 'transparent',
                   color: viewMode === 'card' ? '#fff' : 'var(--text-quaternary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.15s ease, color 0.15s ease',
                 }}><LayoutGrid size={11} /></button>
-                <button onClick={() => setViewMode('compact')} style={{
+                <button title="紧凑视图" onClick={() => setViewMode('compact')} style={{
                   padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: viewMode === 'compact' ? 'var(--accent-blue)' : 'transparent',
                   color: viewMode === 'compact' ? '#fff' : 'var(--text-quaternary)',
@@ -296,7 +295,7 @@ export default function PlanList() {
                   transition: 'background 0.15s ease, color 0.15s ease',
                 }}><Grid3X3 size={11} /></button>
               </div>
-            </>
+            </div>
           )}
         </div>
       ) : !editMode && plans.length > 0 ? (
@@ -398,12 +397,12 @@ export default function PlanList() {
 
                 {/* Tags */}
                 {(plan.tags ?? []).length > 0 && (
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                     {(plan.tags ?? []).slice(0, 3).map((tag) => (
                       <TagBadge key={tag} tag={tag} />
                     ))}
                     {(plan.tags ?? []).length > 3 && (
-                      <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-quaternary)', lineHeight: '18px' }}>
                         +{(plan.tags ?? []).length - 3}
                       </span>
                     )}

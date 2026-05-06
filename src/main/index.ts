@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { createMainWindow } from './window'
+import { createMainWindow, setQuitting } from './window'
 import { registerIpcHandlers } from './ipc-handlers'
 import { createTray } from './tray'
 import { registerHotkeys, unregisterHotkeys } from './hotkey'
@@ -30,6 +30,10 @@ if (!gotTheLock) {
         createMainWindow()
       }
     })
+  })
+
+  app.on('before-quit', () => {
+    setQuitting(true)
   })
 
   app.on('will-quit', () => {

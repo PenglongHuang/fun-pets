@@ -4,7 +4,7 @@ import { Plus, Trash2, CheckSquare, Square, FileText, LayoutGrid, Grid3X3, Clock
 import { motion, AnimatePresence } from 'motion/react'
 import TagFilterBar from '@/components/common/TagFilterBar'
 import SortDropdown from '@/components/common/ListToolbar'
-import { getAllTags, getTagsWithCounts } from '@/lib/tag-utils'
+import { getTagsWithCounts } from '@/lib/tag-utils'
 import { usePlanStore } from '@/stores/planStore'
 import { useToastStore } from '@/stores/toastStore'
 import NoteEditor from './NoteEditor'
@@ -39,7 +39,6 @@ export default function NotesPanel() {
 
   useEffect(() => { load() }, [load])
 
-  const allTags = useMemo(() => getAllTags(notes), [notes])
   const tagFilterItems = useMemo(() => getTagsWithCounts(notes), [notes])
   const filteredNotes = useMemo(() => {
     if (activeTag === null) return notes
@@ -146,7 +145,7 @@ export default function NotesPanel() {
   return (
     <div className="flex flex-col h-full" style={{ gap: 6 }}>
       {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0" style={{ overflow: 'hidden' }}>
         {editMode ? (
           <>
             <button
@@ -183,7 +182,6 @@ export default function NotesPanel() {
               <Button
                 variant="primary"
                 icon={<Plus size={13} strokeWidth={2.5} />}
-                motionProps={{ whileTap: { scale: 0.92 }, whileHover: { scale: 1.04 } }}
                 onClick={handleCreate}
               >
                 新建
@@ -207,7 +205,7 @@ export default function NotesPanel() {
             />
           </div>
           {!editMode && (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
               <SortDropdown
                 sortOptions={[
                   { value: 'time', label: '时间', icon: <Clock size={12} /> },
@@ -218,14 +216,14 @@ export default function NotesPanel() {
               />
               <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.06)' }} />
               <div style={{ display: 'flex', gap: 2 }}>
-                <button onClick={() => setViewMode('card')} style={{
+                <button title="卡片视图" onClick={() => setViewMode('card')} style={{
                   padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: viewMode === 'card' ? 'var(--accent-blue)' : 'transparent',
                   color: viewMode === 'card' ? '#fff' : 'var(--text-quaternary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.15s ease, color 0.15s ease',
                 }}><LayoutGrid size={11} /></button>
-                <button onClick={() => setViewMode('compact')} style={{
+                <button title="紧凑视图" onClick={() => setViewMode('compact')} style={{
                   padding: '3px 5px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: viewMode === 'compact' ? 'var(--accent-blue)' : 'transparent',
                   color: viewMode === 'compact' ? '#fff' : 'var(--text-quaternary)',
@@ -233,7 +231,7 @@ export default function NotesPanel() {
                   transition: 'background 0.15s ease, color 0.15s ease',
                 }}><Grid3X3 size={11} /></button>
               </div>
-            </>
+            </div>
           )}
         </div>
       ) : !editMode && sortedNotes.length > 0 ? (
@@ -371,10 +369,10 @@ export default function NotesPanel() {
 
               {/* Tags */}
               {(note.tags ?? []).length > 0 && (
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                   {(note.tags ?? []).slice(0, 3).map(tag => <TagBadge key={tag} tag={tag} />)}
                   {(note.tags ?? []).length > 3 && (
-                    <span style={{ fontSize: 10, color: 'var(--text-quaternary)' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-quaternary)', lineHeight: '18px' }}>
                       +{(note.tags ?? []).length - 3}
                     </span>
                   )}

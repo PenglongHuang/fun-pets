@@ -409,7 +409,7 @@ function renderEyes(state: PetState, isBlinking: boolean) {
     </>
   )
 
-  if (state === 'sleep' || (isBlinking && state === 'smile')) {
+  if (isBlinking && state === 'smile') {
     return closedEyes
   }
 

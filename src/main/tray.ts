@@ -1,6 +1,7 @@
 import { Tray, Menu, app, nativeImage, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
+import { IPC } from '../shared/ipc-channels'
 
 let tray: Tray | null = null
 
@@ -94,13 +95,23 @@ export function createTray(): void {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '显示 FunPets',
+      label: '操作面板',
       click: () => {
         const win = BrowserWindow.getAllWindows()[0]
-        if (win) {
-          win.show()
-          win.focus()
-        }
+        if (!win) return
+        win.show()
+        win.focus()
+        win.webContents.send(IPC.SET_WINDOW_MODE, 'expanded')
+      },
+    },
+    {
+      label: '桌面宠物',
+      click: () => {
+        const win = BrowserWindow.getAllWindows()[0]
+        if (!win) return
+        win.show()
+        win.focus()
+        win.webContents.send(IPC.SET_WINDOW_MODE, 'pet')
       },
     },
     { type: 'separator' },

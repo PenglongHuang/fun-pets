@@ -48,6 +48,7 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
       return (
         <textarea
           key={`edit-${index}`}
+          data-start-line={block.startLine}
           ref={(el) => { if (el) { textareaRefs.current.set(index, el); autoResize(el) } }}
           value={block.content}
           onChange={(e) => { handleBlockChange(index, e.target.value); autoResize(e.target) }}
@@ -78,6 +79,7 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
       return (
         <div
           key={`render-${index}`}
+          data-start-line={block.startLine}
           onClick={() => handleBlockFocus(index)}
           style={{ minHeight: 24, cursor: 'text', borderRadius: 4, padding: '6px 8px', color: 'var(--text-quaternary)', fontSize: 12 }}
         >
@@ -93,6 +95,7 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
     return (
       <div
         key={`render-${index}`}
+        data-start-line={block.startLine}
         onClick={() => handleBlockFocus(index)}
         style={{
           cursor: 'text',
@@ -113,7 +116,7 @@ export default function LiveMarkdownEditor({ value, onChange, onCursorLineChange
   return (
     <div
       ref={containerRef}
-      className="flex-1 min-h-0 overflow-y-auto"
+      className="flex-1 min-h-0"
       style={{ padding: '8px 0' }}
     >
       {blocks.length === 0 ? (

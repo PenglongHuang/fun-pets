@@ -8,7 +8,7 @@ interface PlanTypeFilterProps {
 }
 
 const OPTIONS: Array<{ value: PlanTypeFilterValue; label: string; color: string }> = [
-  { value: 'all', label: '全部', color: 'transparent' },
+  { value: 'all', label: '全部', color: '#e0e0e0' },
   { value: 'daily', label: '日', color: '#60a5fa' },
   { value: 'weekly', label: '周', color: '#c084fc' },
   { value: 'monthly', label: '月', color: '#fbbf24' },

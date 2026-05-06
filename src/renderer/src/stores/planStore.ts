@@ -44,7 +44,7 @@ interface PlanStore {
   loaded: boolean
   activePlanId: string | null
   sortBy: 'time' | 'name' | 'planDate'
-  viewMode: 'list' | 'card' | 'compact'
+  viewMode: 'card' | 'compact'
   load: () => Promise<void>
   createPlan: (title: string, startDate: string, endDate: string | null, planType?: PlanType, content?: string) => Promise<Plan>
   updatePlan: (id: string, updates: { title?: string; startDate?: string; endDate?: string | null; planType?: PlanType }) => Promise<void>
@@ -58,7 +58,7 @@ interface PlanStore {
   renameTag: (oldName: string, newName: string) => Promise<void>
   deleteTag: (tagName: string) => Promise<void>
   setSortBy: (sort: 'time' | 'name' | 'planDate') => void
-  setViewMode: (mode: 'list' | 'card' | 'compact') => void
+  setViewMode: (mode: 'card' | 'compact') => void
 }
 
 export const usePlanStore = create<PlanStore>()(

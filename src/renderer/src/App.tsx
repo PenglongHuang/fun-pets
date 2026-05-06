@@ -7,7 +7,7 @@ import { usePetAnimation } from '@/hooks/usePetAnimation'
 import { usePanelMorph } from '@/hooks/usePanelMorph'
 import { useTimer } from '@/hooks/useTimer'
 import { usePetStore } from '@/stores/petStore'
-import { fs } from '@/lib/ipc'
+import { fs, windowApi } from '@/lib/ipc'
 function QuickCapture() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -167,15 +167,30 @@ export default function App() {
     }
   }, [isQuickCapture, windowMode, setWindowMode])
 
-  // Reload notes when quick capture saves a new note
+  // Navigate to note when quick capture saves
   useEffect(() => {
     if (isQuickCapture) return
-    const cleanup = window.api.onNavigateToNote(async () => {
+    const cleanup = window.api.onNavigateToNote(async (noteId) => {
       const { useNoteStore } = await import('@/stores/noteStore')
-      useNoteStore.getState().load()
+      await useNoteStore.getState().load()
+      useNoteStore.getState().setActiveNote(noteId)
+      const { usePetStore } = await import('@/stores/petStore')
+      usePetStore.getState().setActivePanel('notes')
+      if (usePetStore.getState().windowMode !== 'expanded') {
+        windowApi.expandPanel()
+      }
     })
     return cleanup
   }, [isQuickCapture])
+
+  // Window mode change from tray (main → renderer)
+  useEffect(() => {
+    if (isQuickCapture) return
+    const cleanup = window.api.onSetWindowMode((mode) => {
+      setWindowMode(mode as 'pet' | 'expanded')
+    })
+    return cleanup
+  }, [isQuickCapture, setWindowMode])
 
   if (isQuickCapture) return <QuickCapture />
 

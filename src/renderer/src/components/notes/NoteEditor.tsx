@@ -17,6 +17,29 @@ import { extractHeadings } from '@/lib/toc-extract'
 
 const AUTO_SAVE_DELAY = 3000
 
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let parent = el.parentElement
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent)
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+      return parent
+    }
+    parent = parent.parentElement
+  }
+  return null
+}
+
+function scrollToElement(el: HTMLElement) {
+  const container = findScrollParent(el)
+  if (!container) return
+  const containerRect = container.getBoundingClientRect()
+  const elRect = el.getBoundingClientRect()
+  container.scrollTo({
+    top: container.scrollTop + elRect.top - containerRect.top,
+    behavior: 'smooth',
+  })
+}
+
 export default function NoteEditor() {
   const activeNoteId = useNoteStore((s) => s.activeNoteId)
   const note = useNoteStore((s) => s.notes.find((n) => n.id === activeNoteId))
@@ -37,6 +60,7 @@ export default function NoteEditor() {
     () => useNoteStore.getState().editorMode
   )
   const [tocVisible, setTocVisible] = useState(false)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const [currentLineIndex, setCurrentLineIndex] = useState<number | null>(0)
   const [dirty, setDirty] = useState(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
@@ -108,6 +132,22 @@ export default function NoteEditor() {
     }
   }, [])
 
+  // Resolve portal target after sidebar creates the slot
+  useEffect(() => {
+    if (tocVisible) {
+      const find = () => document.getElementById('side-panel-slot')
+      const slot = find()
+      if (slot) { setPortalTarget(slot); return }
+      const timer = setTimeout(() => {
+        const el = find()
+        if (el) setPortalTarget(el)
+      }, 60)
+      return () => clearTimeout(timer)
+    } else {
+      setPortalTarget(null)
+    }
+  }, [tocVisible])
+
   // Ctrl+Shift+O handler — toggle TOC
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -146,21 +186,36 @@ export default function NoteEditor() {
     setCurrentLineIndex(lineIndex)
     if (!editorRef.current) return
 
-    if (mode === 'preview') {
-      const headingEls = editorRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6')
-      const headings = extractHeadings(content, tocMaxLevel)
-      const target = headings.find(h => h.lineIndex === lineIndex)
-      if (target) {
-        for (const el of headingEls) {
-          if (el.textContent?.trim() === target.text) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            break
-          }
-        }
+    if (mode === 'edit') {
+      const textarea = editorRef.current.querySelector('textarea')
+      if (textarea) {
+        const lines = content.split('\n')
+        let pos = 0
+        for (let i = 0; i < lineIndex; i++) pos += (lines[i]?.length ?? 0) + 1
+        textarea.focus()
+        textarea.setSelectionRange(pos, pos)
+        textarea.scrollTop = lineIndex * 20
       }
-    } else {
-      const lineHeight = 20
-      editorRef.current.scrollTop = lineIndex * lineHeight
+      return
+    }
+
+    // live mode: find block wrapper by data-start-line
+    if (mode === 'live') {
+      const blockEl = editorRef.current.querySelector(`[data-start-line="${lineIndex}"]`) as HTMLElement | null
+      if (blockEl) {
+        scrollToElement(blockEl)
+      }
+      return
+    }
+
+    // preview mode: match heading by index (source order == DOM order)
+    const headings = extractHeadings(content, tocMaxLevel)
+    const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
+    if (targetIdx !== -1) {
+      const headingEls = editorRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      if (headingEls.length > targetIdx) {
+        scrollToElement(headingEls[targetIdx] as HTMLElement)
+      }
     }
   }
 
@@ -209,6 +264,7 @@ export default function NoteEditor() {
         <motion.button
           onClick={toggleToc}
           whileTap={{ scale: 0.9 }}
+          title="目录 (Ctrl+Shift+O)"
           style={{
             width: 24, height: 24, borderRadius: 5,
             background: tocVisible ? 'rgba(10,132,255,0.15)' : 'transparent',
@@ -270,7 +326,7 @@ export default function NoteEditor() {
         )}
       </div>
     </div>
-    {tocVisible && typeof document !== 'undefined' && document.getElementById('side-panel-slot') && createPortal(
+    {portalTarget && createPortal(
       <TableOfContents
         content={content}
         maxLevel={tocMaxLevel}
@@ -278,7 +334,7 @@ export default function NoteEditor() {
         onHeadingClick={handleHeadingClick}
         onClose={toggleToc}
       />,
-      document.getElementById('side-panel-slot')!
+      portalTarget
     )}
     </>
   )

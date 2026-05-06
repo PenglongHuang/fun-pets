@@ -79,8 +79,8 @@ export default function SortDropdown({
               background: 'rgba(44,44,46,0.98)',
               borderRadius: 'var(--radius-md)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-              padding: '4px 0',
-              minWidth: 120,
+              padding: '3px 0',
+              minWidth: 'auto',
               zIndex: 20,
             }}
           >
@@ -93,8 +93,8 @@ export default function SortDropdown({
                   alignItems: 'center',
                   gap: 6,
                   width: '100%',
-                  padding: '5px 10px',
-                  fontSize: 11,
+                  padding: '4px 8px',
+                  fontSize: 10,
                   background:
                     opt.value === currentSort ? 'rgba(10,132,255,0.15)' : 'transparent',
                   color:

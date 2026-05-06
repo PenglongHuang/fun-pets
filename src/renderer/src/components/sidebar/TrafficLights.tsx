@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { usePetStore } from '@/stores/petStore'
 import { windowApi } from '@/lib/ipc'
+import { usePetStore } from '@/stores/petStore'
 
 const BUTTONS = [
   { color: '#ff5f57', label: 'close', action: 'close' },
@@ -9,14 +9,14 @@ const BUTTONS = [
 ] as const
 
 export default function TrafficLights() {
-  const setWindowMode = usePetStore((s) => s.setWindowMode)
   const [hovered, setHovered] = useState<string | null>(null)
+  const setWindowMode = usePetStore((s) => s.setWindowMode)
 
   const handleClick = (action: string) => {
     if (action === 'close') {
-      setWindowMode('pet')
+      windowApi.hide()
     } else if (action === 'minimize') {
-      windowApi.minimize()
+      setWindowMode('pet')
     } else if (action === 'maximize') {
       windowApi.maximize()
     }

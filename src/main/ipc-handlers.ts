@@ -122,18 +122,55 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.WINDOW_MINIMIZE, () => {
-    getMainWindow()?.minimize()
+  ipcMain.handle(IPC.WINDOW_HIDE, () => {
+    getMainWindow()?.hide()
   })
 
+  let isMaximizedState = false
+  let preMaximizeBounds: { x: number; y: number; width: number; height: number } | null = null
   ipcMain.handle(IPC.WINDOW_MAXIMIZE, () => {
     const win = getMainWindow()
     if (!win) return
-    if (win.isMaximized()) {
-      win.unmaximize()
+    if (isMaximizedState) {
+      if (preMaximizeBounds) {
+        win.setBounds(preMaximizeBounds)
+        preMaximizeBounds = null
+      }
+      isMaximizedState = false
     } else {
-      win.maximize()
+      preMaximizeBounds = win.getBounds()
+      const display = screen.getDisplayNearestPoint({
+        x: preMaximizeBounds.x + preMaximizeBounds.width / 2,
+        y: preMaximizeBounds.y + preMaximizeBounds.height / 2,
+      })
+      win.setBounds({
+        x: display.bounds.x,
+        y: display.bounds.y,
+        width: display.workAreaSize.width,
+        height: display.workAreaSize.height,
+      })
+      isMaximizedState = true
     }
+  })
+
+  ipcMain.handle(IPC.WINDOW_RESTORE_DEFAULT, () => {
+    const win = getMainWindow()
+    if (!win) return
+    isMaximizedState = false
+    preMaximizeBounds = null
+    const display = screen.getDisplayNearestPoint({
+      x: win.getBounds().x + win.getBounds().width / 2,
+      y: win.getBounds().y + win.getBounds().height / 2,
+    })
+    const width = 480
+    const height = 680
+    const { workAreaSize } = display
+    win.setBounds({
+      x: display.bounds.x + workAreaSize.width - width,
+      y: display.bounds.y + Math.floor((workAreaSize.height - height) / 2),
+      width,
+      height,
+    })
   })
 
   ipcMain.handle(IPC.WINDOW_INVALIDATE, () => {
@@ -141,6 +178,10 @@ export function registerIpcHandlers(): void {
     if (win) {
       win.webContents.invalidate()
     }
+  })
+
+  ipcMain.handle(IPC.WINDOW_MINIMIZE, () => {
+    getMainWindow()?.minimize()
   })
 
   // Notification
@@ -151,11 +192,15 @@ export function registerIpcHandlers(): void {
   // Dialog — temporarily lower alwaysOnTop so native dialogs appear in front
   const withForegroundDialog = async <T>(fn: () => Promise<T>): Promise<T> => {
     const win = getMainWindow()
-    if (win) win.setAlwaysOnTop(false)
+    let wasOnTop = false
+    if (win) {
+      wasOnTop = win.isAlwaysOnTop()
+      win.setAlwaysOnTop(false)
+    }
     try {
       return await fn()
     } finally {
-      if (win) win.setAlwaysOnTop(true, 'floating')
+      if (win) win.setAlwaysOnTop(wasOnTop, 'floating')
     }
   }
 

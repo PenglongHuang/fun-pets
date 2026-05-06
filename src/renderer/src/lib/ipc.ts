@@ -38,8 +38,6 @@ export const windowApi = {
     window.api.windowSetBounds(bounds),
   setIgnoreMouseEvents: (ignore: boolean) =>
     window.api.windowSetIgnoreMouseEvents(ignore),
-  moveBy: (cursorX: number, cursorY: number) =>
-    window.api.windowMoveBy(cursorX, cursorY),
   expandPanel: (petX?: number, petY?: number): Promise<{ x: number; y: number }> =>
     window.api.windowExpandPanel(petX, petY) as Promise<{ x: number; y: number }>,
   collapsePet: (petX?: number, petY?: number) =>
@@ -66,8 +64,6 @@ export const windowApi = {
     }
     await windowApi.setBounds(newBounds)
   },
-  titlebarDrag: (deltaX: number, deltaY: number): void =>
-    window.api.windowTitlebarDrag(deltaX, deltaY),
   invalidate: (): Promise<void> =>
     window.api.windowInvalidate(),
   minimize: (): Promise<void> =>
@@ -78,6 +74,8 @@ export const windowApi = {
     window.api.stopPetTracking(),
   setPetDragging: (dragging: boolean, cursorX?: number, cursorY?: number): Promise<void> =>
     window.api.setPetDragging(dragging, cursorX, cursorY),
+  moveBy: (cursorX: number, cursorY: number): void =>
+    window.api.windowMoveBy(cursorX, cursorY),
 }
 
 export const notify = {

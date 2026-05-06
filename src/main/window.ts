@@ -3,6 +3,11 @@ import { join } from 'path'
 import { IPC } from '../shared/ipc-channels'
 
 let mainWindow: BrowserWindow | null = null
+let isQuitting = false
+
+export function setQuitting(value: boolean): void {
+  isQuitting = value
+}
 
 // Mode dimensions
 const PET_WIDTH = 110
@@ -11,17 +16,6 @@ const EXPANDED_WIDTH = 480
 const EXPANDED_HEIGHT = 680
 
 let isExpandedMode = false
-
-function handleResizeAnchor(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  const bounds = mainWindow.getBounds()
-  const display = getTargetDisplay()
-  const { workAreaSize } = display
-  const targetX = display.bounds.x + workAreaSize.width - bounds.width
-  const targetY = display.bounds.y + Math.floor((workAreaSize.height - bounds.height) / 2)
-  // setPosition only fires 'resize' if size actually changes, so no infinite loop risk
-  mainWindow.setPosition(targetX, targetY)
-}
 
 function getTargetDisplay() {
   if (mainWindow) {
@@ -74,6 +68,13 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  mainWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -120,8 +121,10 @@ export function expandToPanelMode(
     height,
   })
 
+  mainWindow.setAlwaysOnTop(false)
+  mainWindow.setSkipTaskbar(false)
+
   isExpandedMode = true
-  mainWindow.on('resize', handleResizeAnchor)
 
   return { x: original.x, y: original.y }
 }
@@ -137,7 +140,9 @@ export function collapseToPetMode(petX?: number, petY?: number): { width: number
     savedExpandedSize = { width: bounds.width, height: bounds.height }
   }
 
-  mainWindow.removeListener('resize', handleResizeAnchor)
+  mainWindow.setAlwaysOnTop(true, 'floating')
+  mainWindow.setSkipTaskbar(true)
+
   mainWindow.setResizable(false)
   mainWindow.setMinimumSize(0, 0)
 
@@ -244,14 +249,12 @@ export function setPetDragging(dragging: boolean, cursorX?: number, cursorY?: nu
   if (!mainWindow || mainWindow.isDestroyed()) return
 
   if (dragging) {
-    // Kill cursor tracking interval
     if (trackingInterval) {
       clearInterval(trackingInterval)
       trackingInterval = null
     }
     mainWindow.setIgnoreMouseEvents(false)
 
-    // Store initial positions — window pos from getPosition(), cursor pos from renderer (both DIP)
     const [winX, winY] = mainWindow.getPosition()
     dragState = { winStartX: winX, winStartY: winY, cursorStartX: cursorX ?? 0, cursorStartY: cursorY ?? 0 }
   } else {
@@ -261,11 +264,11 @@ export function setPetDragging(dragging: boolean, cursorX?: number, cursorY?: nu
   }
 }
 
-/** Move window using renderer-reported cursor coordinates (both in DIP space) */
+/** Move window using renderer-provided cursor coordinates (both in DIP) */
 export function movePetDrag(cursorX: number, cursorY: number): void {
   if (!mainWindow || mainWindow.isDestroyed() || !dragState) return
   mainWindow.setPosition(
-    dragState.winStartX + (cursorX - dragState.cursorStartX),
-    dragState.winStartY + (cursorY - dragState.cursorStartY)
+    Math.round(dragState.winStartX + cursorX - dragState.cursorStartX),
+    Math.round(dragState.winStartY + cursorY - dragState.cursorStartY)
   )
 }

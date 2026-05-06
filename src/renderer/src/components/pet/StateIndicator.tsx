@@ -5,7 +5,6 @@ const stateLabels: Record<PetState, string> = {
   smile: '微笑',
   singleWink: '眨眼~',
   doubleWink: '开心',
-  sleep: '睡觉',
 }
 
 interface StateIndicatorProps {

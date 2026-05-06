@@ -42,12 +42,11 @@ export default function DynamicIsland() {
   }
 
   const handleMouseLeave = () => {
-    expandTimeoutRef.current = setTimeout(() => setIsExpanded(false), 150)
+    expandTimeoutRef.current = setTimeout(() => setIsExpanded(false), 200)
   }
 
   const handlePanelClick = (panelId: string) => {
     setActivePanel(panelId as any)
-    expandTimeoutRef.current = setTimeout(() => setIsExpanded(false), 300)
   }
 
   const handleToggleTimer = () => {
@@ -84,7 +83,7 @@ export default function DynamicIsland() {
           alignItems: 'center',
           gap: 10,
           height: 26,
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
         }}
       >
         {/* Status dot */}
@@ -150,22 +149,37 @@ export default function DynamicIsland() {
     )
   }
 
-  // Expanded state — show all panel tabs
-  if (isExpanded) {
-    return (
+  // Single container for compact + expanded with smooth width transition
+  const currentPanel = PANELS.find((p) => p.id === activePanel) ?? PANELS[0]
+  const CurrentIcon = currentPanel.icon
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        WebkitAppRegion: 'no-drag',
+        background: 'rgba(0,0,0,0.6)',
+        borderRadius: 18,
+        height: 26,
+        overflow: 'hidden',
+        position: 'relative',
+        maxWidth: isExpanded ? 280 : 120,
+        transition: 'max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {/* Expanded content — natural width, clipped when container shrinks */}
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         style={{
-          WebkitAppRegion: 'no-drag',
-          background: 'rgba(0,0,0,0.6)',
-          borderRadius: 18,
-          padding: '4px 8px',
           display: 'flex',
           alignItems: 'center',
           gap: 2,
+          padding: '4px 8px',
           height: 26,
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          width: 'max-content',
+          opacity: isExpanded ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: isExpanded ? 'auto' : 'none',
         }}
       >
         {PANELS.map((panel) => {
@@ -207,45 +221,40 @@ export default function DynamicIsland() {
           )
         })}
       </div>
-    )
-  }
 
-  // Default compact state — current panel + 4 dots
-  const currentPanel = PANELS.find((p) => p.id === activePanel) ?? PANELS[0]
-  const CurrentIcon = currentPanel.icon
-  return (
-    <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        WebkitAppRegion: 'no-drag',
-        background: 'rgba(0,0,0,0.6)',
-        borderRadius: 18,
-        padding: '4px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        height: 26,
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: 'default',
-      }}
-    >
-      <CurrentIcon size={13} strokeWidth={1.7} style={{ color: 'rgba(255,255,255,0.65)' }} />
-      <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600 }}>
-        {currentPanel.label}
-      </span>
-      <div style={{ display: 'flex', gap: 3 }}>
-        {PANELS.map((panel) => (
-          <div
-            key={panel.id}
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: '50%',
-              background: activePanel === panel.id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
-            }}
-          />
-        ))}
+      {/* Compact content — absolute overlay, cross-fades in */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: 26,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '4px 16px',
+          opacity: isExpanded ? 0 : 1,
+          transition: 'opacity 0.2s ease 0.15s',
+          pointerEvents: isExpanded ? 'none' : 'auto',
+        }}
+      >
+        <CurrentIcon size={13} strokeWidth={1.7} style={{ color: 'rgba(255,255,255,0.65)' }} />
+        <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600 }}>
+          {currentPanel.label}
+        </span>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {PANELS.map((panel) => (
+            <div
+              key={panel.id}
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: '50%',
+                background: activePanel === panel.id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

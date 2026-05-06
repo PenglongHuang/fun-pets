@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+@theme {
+  /* Surfaces */
+  --color-surface-base: var(--bg-base);
+  --color-surface-secondary: var(--bg-secondary);
+  --color-surface-tertiary: var(--bg-tertiary);
+
+  /* Foreground */
+  --color-fg-primary: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-quaternary: var(--text-quaternary);
+
+  /* Accents */
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-green: var(--accent-green);
+
+  /* Radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+}
+
 /* ============================================
    FunPets Design System — Apple HIG + StepFun Inspired
    ============================================ */
@@ -195,20 +221,9 @@ html, body, #root {
   100% { transform: translateY(0) rotate(0deg); }
 }
 
-@keyframes pet-sleepy {
-  0%, 100% { transform: scaleY(0.95) scaleX(1.02); }
-  50% { transform: scaleY(0.90) scaleX(1.04); }
-}
-
 @keyframes pet-blink {
   0%, 45%, 55%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(0.1); }
-}
-
-@keyframes pet-zzz {
-  0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.5); }
-  50% { opacity: 0.7; transform: translateY(-16px) translateX(4px) scale(1); }
-  100% { opacity: 0; transform: translateY(-28px) translateX(8px) scale(0.7); }
 }
 
 /* === Transition Utilities === */
@@ -450,7 +465,18 @@ html, body, #root {
   color: var(--accent-blue);
 }
 
+.hover-primary-lift:hover {
+  background: var(--accent-blue) !important;
+  color: #fff !important;
+  border-color: var(--accent-blue) !important;
+}
+
 @keyframes island-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+@keyframes island-appear {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
