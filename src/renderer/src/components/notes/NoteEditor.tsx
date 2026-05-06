@@ -11,8 +11,6 @@ import { getAllTags } from '@/lib/tag-utils'
 import { motion } from 'motion/react'
 import { useToast } from '@/components/common/Toast'
 import { extractH1Title } from '@/utils/markdown'
-import { usePetStore } from '@/stores/petStore'
-import { windowApi } from '@/lib/ipc'
 import { extractHeadings } from '@/lib/toc-extract'
 
 const AUTO_SAVE_DELAY = 3000
@@ -53,14 +51,12 @@ export default function NoteEditor() {
   const allTags = useMemo(() => getAllTags(notes), [notes])
 
   const tocMaxLevel = useNoteStore((s) => s.tocMaxLevel)
-  const setTocVisibleGlobal = usePetStore((s) => s.setTocVisible)
 
   const [content, setContent] = useState('')
   const [mode, setMode] = useState<'live' | 'edit' | 'preview'>(
     () => useNoteStore.getState().editorMode
   )
   const [tocVisible, setTocVisible] = useState(false)
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const [currentLineIndex, setCurrentLineIndex] = useState<number | null>(0)
   const [dirty, setDirty] = useState(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
@@ -68,10 +64,9 @@ export default function NoteEditor() {
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
-  const tocVisibleRef = useRef(tocVisible)
-  tocVisibleRef.current = tocVisible
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -112,10 +107,6 @@ export default function NoteEditor() {
   // Cleanup: save dirty content on unmount
   useEffect(() => {
     return () => {
-      if (tocVisibleRef.current) {
-        usePetStore.getState().setTocVisible(false)
-        windowApi.resizeForSidePanel(-140)
-      }
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
       if (dirtyRef.current) {
         const store = useNoteStore.getState()
@@ -131,22 +122,6 @@ export default function NoteEditor() {
       }
     }
   }, [])
-
-  // Resolve portal target after sidebar creates the slot
-  useEffect(() => {
-    if (tocVisible) {
-      const find = () => document.getElementById('side-panel-slot')
-      const slot = find()
-      if (slot) { setPortalTarget(slot); return }
-      const timer = setTimeout(() => {
-        const el = find()
-        if (el) setPortalTarget(el)
-      }, 60)
-      return () => clearTimeout(timer)
-    } else {
-      setPortalTarget(null)
-    }
-  }, [tocVisible])
 
   // Ctrl+Shift+O handler — toggle TOC
   useEffect(() => {
@@ -170,15 +145,8 @@ export default function NoteEditor() {
     autoSaveTimer.current = setTimeout(() => doSave(true), AUTO_SAVE_DELAY)
   }
 
-  const toggleToc = async () => {
-    const nextVisible = !tocVisible
-    setTocVisible(nextVisible)
-    setTocVisibleGlobal(nextVisible)
-    if (nextVisible) {
-      await windowApi.resizeForSidePanel(140)
-    } else {
-      await windowApi.resizeForSidePanel(-140)
-    }
+  const toggleToc = () => {
+    setTocVisible(!tocVisible)
   }
   toggleTocRef.current = toggleToc
 
@@ -199,16 +167,20 @@ export default function NoteEditor() {
       return
     }
 
-    // live mode: find block wrapper by data-start-line
     if (mode === 'live') {
-      const blockEl = editorRef.current.querySelector(`[data-start-line="${lineIndex}"]`) as HTMLElement | null
-      if (blockEl) {
-        scrollToElement(blockEl)
+      const headings = extractHeadings(content, tocMaxLevel)
+      const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
+      if (targetIdx !== -1) {
+        const headingEls = editorRef.current.querySelectorAll('.vditor-ir h1, .vditor-ir h2, .vditor-ir h3, .vditor-ir h4, .vditor-ir h5, .vditor-ir h6')
+        if (headingEls.length > targetIdx) {
+          const el = headingEls[targetIdx] as HTMLElement
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
       }
       return
     }
 
-    // preview mode: match heading by index (source order == DOM order)
+    // preview mode
     const headings = extractHeadings(content, tocMaxLevel)
     const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
     if (targetIdx !== -1) {
@@ -220,18 +192,15 @@ export default function NoteEditor() {
   }
 
   return (
-    <>
-    <div className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
+    <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
       <ToastContainer />
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <motion.button
-          onClick={async () => {
+          onClick={() => {
             if (tocVisible) {
               setTocVisible(false)
-              setTocVisibleGlobal(false)
-              await windowApi.resizeForSidePanel(-140)
             }
             setActiveNote(null)
           }}
@@ -318,24 +287,26 @@ export default function NoteEditor() {
       {/* Editor / Preview */}
       <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto' }}>
         {mode === 'live' ? (
-          <LiveMarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
+          <LiveMarkdownEditor key={activeNoteId} value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
         ) : mode === 'edit' ? (
           <MarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} placeholder="# 标题\n\n内容..." />
         ) : (
           <MarkdownPreview content={content} />
         )}
       </div>
+
+      {/* TOC — portaled to root, completely outside scroll/layout flow */}
+      {rootRef.current && createPortal(
+        <TableOfContents
+          content={content}
+          maxLevel={tocMaxLevel}
+          currentLineIndex={currentLineIndex}
+          onHeadingClick={handleHeadingClick}
+          onClose={() => { setTocVisible(false) }}
+          open={tocVisible}
+        />,
+        rootRef.current
+      )}
     </div>
-    {portalTarget && createPortal(
-      <TableOfContents
-        content={content}
-        maxLevel={tocMaxLevel}
-        currentLineIndex={currentLineIndex}
-        onHeadingClick={handleHeadingClick}
-        onClose={toggleToc}
-      />,
-      portalTarget
-    )}
-    </>
   )
 }

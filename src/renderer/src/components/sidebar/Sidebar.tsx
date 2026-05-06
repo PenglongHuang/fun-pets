@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'motion/react'
 import PanelRouter from './PanelRouter'
 import IconStrip from './IconStrip'
 import TitleBar from './TitleBar'
@@ -9,7 +8,6 @@ import GlobalToast from '@/components/common/GlobalToast'
 export default function Sidebar() {
   const activePanel = usePetStore((s) => s.activePanel)
   const setActivePanel = usePetStore((s) => s.setActivePanel)
-  const tocVisible = usePetStore((s) => s.tocVisible)
 
   return (
     <div
@@ -28,19 +26,6 @@ export default function Sidebar() {
 
       {/* Content area: PanelRouter + IconStrip */}
       <div className="flex flex-1 min-h-0">
-        {/* Side panel slot (TOC renders here via portal) */}
-        <AnimatePresence>
-          {tocVisible && (
-            <motion.div
-              id="side-panel-slot"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 140, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              style={{ flexShrink: 0, overflow: 'hidden' }}
-            />
-          )}
-        </AnimatePresence>
         {/* Left: Panel content */}
         <PanelRouter activePanel={activePanel} />
 

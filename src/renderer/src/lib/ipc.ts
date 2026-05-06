@@ -48,22 +48,6 @@ export const windowApi = {
     window.api.windowMaximize(),
   restoreDefault: (): Promise<void> =>
     window.api.windowRestoreDefault(),
-  resizeForSidePanel: async (panelWidth: number) => {
-    const bounds = await windowApi.getWindowBounds()
-    if (!bounds) return
-    // Expand leftward: decrease x, increase width
-    const newBounds = {
-      x: bounds.x - panelWidth,
-      y: bounds.y,
-      width: bounds.width + panelWidth,
-      height: bounds.height,
-    }
-    // Clamp to screen: don't go past left edge
-    if (newBounds.x < 0) {
-      newBounds.x = 0
-    }
-    await windowApi.setBounds(newBounds)
-  },
   invalidate: (): Promise<void> =>
     window.api.windowInvalidate(),
   minimize: (): Promise<void> =>
