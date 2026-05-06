@@ -41,7 +41,7 @@ A dropdown floating panel positioned absolutely in the editor area:
 
 ### Heading click → scroll
 
-- Live mode: Query Vditor DOM for target heading element, scroll into view
+- Live mode: Query `.vditor-ir h1, .vditor-ir h2, ...` elements, match by sequential index against extracted headings array, call `scrollIntoView()`
 - Edit mode: Calculate textarea cursor position from line index, scroll
 - Preview mode: Query rendered heading elements by index
 
@@ -68,12 +68,27 @@ theme: 'dark'
 icon: 'ant'           // Ant Design icons
 ```
 
+### Props interface
+
+The rewritten `LiveMarkdownEditor` preserves the existing callback interface:
+
+```
+LiveMarkdownEditorProps {
+  value: string
+  onChange: (value: string) => void
+  onCursorLineChange?: (lineIndex: number | null) => void
+  placeholder?: string
+}
+```
+
+The Vditor wrapper is responsible for emitting `onCursorLineChange` by mapping cursor position to source line index.
+
 ### Lifecycle
 
 1. `useEffect` initializes Vditor on mount with note content
 2. `activeNoteId` changes → destroy old instance, create new one with new content
 3. Mode switches to edit/preview → hide Vditor container (`display: none`), show textarea/preview
-4. Mode switches back to live → show Vditor container, content stays synced via `getValue()`/`setValue()`
+4. Mode switches back to live → show Vditor container; only call `setValue()` if content differs from last Vditor-known content (avoid unnecessary re-renders and cursor loss)
 
 ### Content sync & auto-save
 
@@ -84,8 +99,12 @@ icon: 'ant'           // Ant Design icons
 ### TOC integration
 
 - Extract headings from `getValue()` using existing `toc-extract.ts`
-- Track current position via Vditor's cursor/selection API or DOM observation
+- Track current position: listen to Vditor's `keyup` event, get cursor via `window.getSelection()`, walk up DOM to find heading element (h1-h6), map heading text to source line index via extracted headings array. Emit `onCursorLineChange` with the matched line index.
 - Heading click → scroll to Vditor's rendered heading element
+
+### Init failure handling
+
+If Vditor fails to initialize (JS error, resource load failure), catch the error in the init `useEffect` and fall back to showing the MarkdownEditor (plain textarea) with a toast notification. This ensures the user can always edit their notes.
 
 ### Theme customization
 
@@ -139,7 +158,7 @@ Content is never lost during mode switches. Unsaved changes are preserved.
 ### Removed code
 
 - Portal rendering (`createPortal` to `#side-panel-slot`)
-- `resizeForSidePanel` calls in NoteEditor
+- `resizeForSidePanel` calls in NoteEditor (including the unmount cleanup at line 117 of current NoteEditor.tsx)
 - `#side-panel-slot` DOM lookup with timeout hack
 - `block-parser.ts` imports (file preserved, no longer used)
 
@@ -156,7 +175,7 @@ Content is never lost during mode switches. Unsaved changes are preserved.
 
 | Risk | Mitigation |
 |------|-----------|
-| Vditor bundle size (~500KB) | Lazy-load Vditor only when live mode is active |
+| Vditor bundle size (~500KB) | Dynamic `import('vditor')` in LiveMarkdownEditor; only loaded when live mode renders |
 | Vditor CSS conflicts with app styles | Scoped theme overrides with high-specificity selectors |
 | Vditor initialization latency | Show loading placeholder during init |
 | Mode switch content sync bugs | Always source truth from `content` state, sync on every mode change |
