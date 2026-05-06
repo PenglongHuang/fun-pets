@@ -169,16 +169,20 @@ export default function NoteEditor() {
       return
     }
 
-    // live mode: find block wrapper by data-start-line
     if (mode === 'live') {
-      const blockEl = editorRef.current.querySelector(`[data-start-line="${lineIndex}"]`) as HTMLElement | null
-      if (blockEl) {
-        scrollToElement(blockEl)
+      const headings = extractHeadings(content, tocMaxLevel)
+      const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
+      if (targetIdx !== -1) {
+        const headingEls = editorRef.current.querySelectorAll('.vditor-ir h1, .vditor-ir h2, .vditor-ir h3, .vditor-ir h4, .vditor-ir h5, .vditor-ir h6')
+        if (headingEls.length > targetIdx) {
+          const el = headingEls[targetIdx] as HTMLElement
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
       }
       return
     }
 
-    // preview mode: match heading by index (source order == DOM order)
+    // preview mode
     const headings = extractHeadings(content, tocMaxLevel)
     const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
     if (targetIdx !== -1) {
