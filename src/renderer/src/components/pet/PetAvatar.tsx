@@ -168,6 +168,10 @@ export default function PetAvatar({ size = 100, onClick, className = '', showTim
           {hoverAnim === 'think' && !isTimerRunning && <ThoughtBubble />}
 
           {hoverAnim === 'heart' && <HeartOverlay />}
+
+          {hoverAnim === 'firework' && <FireworkOverlay />}
+
+          {hoverAnim === 'cute' && <CuteOverlay />}
         </svg>
       </motion.div>
       <AnimatePresence>
@@ -221,6 +225,101 @@ function HeartOverlay() {
         opacity={0.9}
       />
     </motion.g>
+  )
+}
+
+const FIREWORK_COLORS = ['#FF6B8A', '#FFD54F', '#64B5F6', '#FF8A65', '#81C784']
+const FIREWORK_PARTICLES = [
+  { angle: -60, delay: 0 },
+  { angle: -30, delay: 0.05 },
+  { angle: 0, delay: 0 },
+  { angle: 30, delay: 0.05 },
+  { angle: 60, delay: 0 },
+  { angle: -90, delay: 0.1 },
+  { angle: 90, delay: 0.1 },
+]
+
+function FireworkOverlay() {
+  return (
+    <g>
+      {FIREWORK_PARTICLES.map((p, i) => {
+        const rad = (p.angle * Math.PI) / 180
+        const dx = Math.sin(rad) * 50
+        const dy = -Math.cos(rad) * 50
+        const color = FIREWORK_COLORS[i % FIREWORK_COLORS.length]
+        return (
+          <motion.circle
+            key={i}
+            cx={128} cy={60} r={4}
+            fill={color}
+            initial={{ opacity: 0, cx: 128, cy: 60, r: 2 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              cx: [128, 128 + dx],
+              cy: [60, 60 + dy],
+              r: [2, 4, 3, 1],
+            }}
+            transition={{ duration: 1.2, delay: p.delay, ease: 'easeOut' }}
+          />
+        )
+      })}
+      {/* Center sparkle */}
+      <motion.g
+        initial={{ opacity: 0, scale: 0.3 }}
+        animate={{ opacity: [0, 1, 0.8, 0], scale: [0.3, 1.2, 1, 0.5] }}
+        transition={{ duration: 1.2, ease: 'easeInOut' }}
+        style={{ transformOrigin: '128px 60px' }}
+      >
+        <path
+          d="M128 48 L130 56 L138 58 L130 60 L128 68 L126 60 L118 58 L126 56Z"
+          fill="#FFF8E7"
+          opacity={0.9}
+        />
+      </motion.g>
+    </g>
+  )
+}
+
+function CuteOverlay() {
+  return (
+    <g>
+      {/* Blush cheeks */}
+      <motion.ellipse
+        cx={90} cy={148} rx={14} ry={8}
+        fill="#FFB6C1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.6, 0.7, 0] }}
+        transition={{ duration: 1.5, ease: 'easeInOut' }}
+      />
+      <motion.ellipse
+        cx={166} cy={148} rx={14} ry={8}
+        fill="#FFB6C1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.6, 0.7, 0] }}
+        transition={{ duration: 1.5, ease: 'easeInOut' }}
+      />
+      {/* Sparkle stars */}
+      {[
+        { x: 55, y: 70, delay: 0 },
+        { x: 200, y: 80, delay: 0.15 },
+        { x: 70, y: 180, delay: 0.3 },
+        { x: 190, y: 170, delay: 0.1 },
+      ].map((s, i) => (
+        <motion.g
+          key={i}
+          initial={{ opacity: 0, scale: 0.3 }}
+          animate={{ opacity: [0, 1, 0.8, 0], scale: [0.3, 1, 1.2, 0.5], y: [s.y, s.y - 8, s.y - 16] }}
+          transition={{ duration: 1.5, delay: s.delay, ease: 'easeInOut' }}
+          style={{ transformOrigin: `${s.x}px ${s.y}px` }}
+        >
+          <path
+            d={`M${s.x} ${s.y - 6} L${s.x + 2} ${s.y - 2} L${s.x + 6} ${s.y} L${s.x + 2} ${s.y + 2} L${s.x} ${s.y + 6} L${s.x - 2} ${s.y + 2} L${s.x - 6} ${s.y} L${s.x - 2} ${s.y - 2}Z`}
+            fill="#FFD54F"
+            opacity={0.85}
+          />
+        </motion.g>
+      ))}
+    </g>
   )
 }
 
@@ -310,7 +409,7 @@ function renderEyes(state: PetState, isBlinking: boolean) {
     </>
   )
 
-  if (state === 'sleep' || (isBlinking && state === 'smile')) {
+  if (isBlinking && state === 'smile') {
     return closedEyes
   }
 

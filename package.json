@@ -7,7 +7,8 @@
     "dev": "node launch.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "build:win": "npm run build && electron-builder --win"
+    "build:win": "npm run build && electron-builder --win",
+    "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
@@ -15,7 +16,8 @@
     "electron-store": "^10.0.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^1.11.0",
-    "marked": "^18.0.2"
+    "marked": "^18.0.2",
+    "vditor": "^3.11.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.4",

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { getTagColor } from '@/lib/tag-utils'
 
 interface TagInputProps {
   tags: string[]
@@ -48,47 +47,47 @@ export default function TagInput({ tags, allTags, onUpdateTags, placeholder = 'æ
       className="flex flex-wrap items-center gap-1.5"
       style={{ position: 'relative', padding: '4px 0' }}
     >
-      {tags.map((tag) => {
-        const color = getTagColor(tag)
-        return (
-          <span
-            key={tag}
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            fontWeight: 500,
+            padding: '4px 8px',
+            borderRadius: 8,
+            background: 'transparent',
+            color: '#8ab4f8',
+            letterSpacing: 0.2,
+            whiteSpace: 'nowrap',
+            border: '1px solid rgba(138,180,248,0.3)',
+          }}
+        >
+          <svg width="8" height="8" viewBox="0 0 16 16">
+            <circle cx="8" cy="8" r="3" fill="#8ab4f8" />
+          </svg>
+          {tag}
+          <button
+            onClick={() => removeTag(tag)}
             style={{
-              display: 'inline-flex',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#555',
+              padding: 0,
+              display: 'flex',
               alignItems: 'center',
-              gap: 3,
-              fontSize: 10,
-              fontWeight: 600,
-              padding: '2px 6px 2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: `${color}20`,
-              color,
-              letterSpacing: 0.2,
-              whiteSpace: 'nowrap',
+              transition: 'color 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#888' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#555' }}
           >
-            {tag}
-            <button
-              onClick={() => removeTag(tag)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'inherit',
-                opacity: 0.6,
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'opacity 0.15s ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6' }}
-            >
-              <X size={10} />
-            </button>
-          </span>
-        )
-      })}
+            <X size={10} />
+          </button>
+        </span>
+      ))}
 
       <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 60 }}>
         <input
@@ -154,10 +153,18 @@ export default function TagInput({ tags, allTags, onUpdateTags, placeholder = 'æ
                   textAlign: 'left',
                   transition: 'background 0.1s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(138,180,248,0.1)'
+                  e.currentTarget.style.color = '#8ab4f8'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }}
               >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: getTagColor(tag), flexShrink: 0 }} />
+                <svg width="10" height="10" viewBox="0 0 16 16">
+                  <circle cx="8" cy="8" r="3" fill="#8ab4f8" />
+                </svg>
                 {tag}
               </button>
             ))}

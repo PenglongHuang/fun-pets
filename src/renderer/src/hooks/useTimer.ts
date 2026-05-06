@@ -7,6 +7,8 @@ export function useTimer() {
   const intervalRef = useRef<ReturnType<typeof setInterval>>()
 
   useEffect(() => {
+    if (window.location.hash === '#quick-capture') return
+
     if (status === 'running') {
       intervalRef.current = setInterval(tick, 1000)
     }

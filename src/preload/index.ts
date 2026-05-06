@@ -30,15 +30,17 @@ const api = {
     ipcRenderer.invoke(IPC.WINDOW_SET_BOUNDS, bounds),
   windowSetIgnoreMouseEvents: (ignore: boolean) =>
     ipcRenderer.invoke(IPC.WINDOW_SET_IGNORE_MOUSE_EVENTS, ignore),
-  windowMoveBy: (cursorX: number, cursorY: number) => {
-    ipcRenderer.send(IPC.WINDOW_MOVE_BY, cursorX, cursorY)
-  },
   windowExpandPanel: (petX?: number, petY?: number) =>
     ipcRenderer.invoke(IPC.WINDOW_EXPAND_PANEL, petX, petY),
   windowCollapsePet: (petX?: number, petY?: number) =>
     ipcRenderer.invoke(IPC.WINDOW_COLLAPSE_PET, petX, petY),
+  windowHide: () => ipcRenderer.invoke(IPC.WINDOW_HIDE),
+  windowMaximize: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE),
+  windowRestoreDefault: () => ipcRenderer.invoke(IPC.WINDOW_RESTORE_DEFAULT),
   windowInvalidate: () =>
     ipcRenderer.invoke(IPC.WINDOW_INVALIDATE),
+  windowMinimize: () =>
+    ipcRenderer.invoke(IPC.WINDOW_MINIMIZE),
 
   // Notification
   notificationShow: (title: string, body: string) => ipcRenderer.invoke(IPC.NOTIFICATION_SHOW, title, body),
@@ -70,10 +72,29 @@ const api = {
   stopPetTracking: () => ipcRenderer.invoke(IPC.PET_STOP_TRACKING),
   setPetDragging: (dragging: boolean, cursorX?: number, cursorY?: number) =>
     ipcRenderer.invoke(IPC.PET_SET_DRAGGING, dragging, cursorX, cursorY),
+  windowMoveBy: (cursorX: number, cursorY: number) =>
+    ipcRenderer.send(IPC.WINDOW_MOVE_BY, cursorX, cursorY),
   onPetCursorHover: (callback: (hovered: boolean) => void) => {
     const handler = (_e: any, data: { hovered: boolean }) => callback(data.hovered)
     ipcRenderer.on(IPC.PET_CURSOR_HOVER, handler)
     return () => ipcRenderer.removeListener(IPC.PET_CURSOR_HOVER, handler)
+  },
+
+  // Quick note navigation
+  quickNoteSaved: (noteId: string) => {
+    ipcRenderer.send(IPC.QUICK_NOTE_SAVED, noteId)
+  },
+  onNavigateToNote: (callback: (noteId: string) => void) => {
+    const handler = (_e: any, noteId: string) => callback(noteId)
+    ipcRenderer.on(IPC.NAVIGATE_TO_NOTE, handler)
+    return () => ipcRenderer.removeListener(IPC.NAVIGATE_TO_NOTE, handler)
+  },
+
+  // Window mode (main → renderer)
+  onSetWindowMode: (callback: (mode: string) => void) => {
+    const handler = (_e: any, mode: string) => callback(mode)
+    ipcRenderer.on(IPC.SET_WINDOW_MODE, handler)
+    return () => ipcRenderer.removeListener(IPC.SET_WINDOW_MODE, handler)
   },
 }
 

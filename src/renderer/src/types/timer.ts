@@ -13,4 +13,5 @@ export interface TimerHistoryEntry {
   completedAt: string
   phase: 'focus'
   durationMinutes: number
+  planId?: string
 }

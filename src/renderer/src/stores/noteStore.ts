@@ -1,17 +1,20 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
-import { fs } from '@/lib/ipc'
+import { fs, store } from '@/lib/ipc'
 import type { Note } from '@/types/note'
 
-const COLOR_PALETTE = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 
 interface NoteStore {
   notes: Note[]
   loaded: boolean
   activeNoteId: string | null
+  sortBy: 'time' | 'name'
+  viewMode: 'card' | 'compact'
+  editorMode: 'live' | 'edit' | 'preview'
+  tocMaxLevel: number
   load: () => Promise<void>
-  createNote: (title: string, content?: string) => Promise<Note>
+  createNote: (title: string, content?: string, tags?: string[]) => Promise<Note>
   deleteNote: (id: string) => Promise<void>
   deleteNotes: (ids: string[]) => Promise<void>
   saveNoteContent: (id: string, content: string) => Promise<void>
@@ -21,6 +24,10 @@ interface NoteStore {
   renameTag: (oldName: string, newName: string) => Promise<void>
   deleteTag: (tagName: string) => Promise<void>
   setActiveNote: (id: string | null) => void
+  setSortBy: (sort: 'time' | 'name') => void
+  setViewMode: (mode: 'card' | 'compact') => void
+  setEditorMode: (mode: 'live' | 'edit' | 'preview') => void
+  setTocMaxLevel: (level: number) => void
 }
 
 export const useNoteStore = create<NoteStore>()(
@@ -28,6 +35,10 @@ export const useNoteStore = create<NoteStore>()(
     notes: [],
     loaded: false,
     activeNoteId: null,
+    sortBy: 'time',
+    viewMode: 'card',
+    editorMode: 'live' as const,
+    tocMaxLevel: 3,
 
     load: async () => {
       try {
@@ -45,19 +56,37 @@ export const useNoteStore = create<NoteStore>()(
       } catch {
         set({ notes: [], loaded: true })
       }
+
+      const prefs = await store.get<{ sortBy: string; viewMode: string; editorMode?: string; tocMaxLevel?: number }>('notePrefs')
+      if (prefs) {
+        set({
+          sortBy: (prefs.sortBy as any) ?? 'time',
+          viewMode: (prefs.viewMode as any) ?? 'card',
+          editorMode: (prefs.editorMode as 'live' | 'edit' | 'preview') ?? 'live',
+          tocMaxLevel: prefs.tocMaxLevel ?? 3,
+        })
+      }
     },
 
-    createNote: async (title, content = '') => {
+    createNote: async (title, content = '', tags) => {
       const id = nanoid(8)
       const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
       const filePath = `notes/${id}-${slug}.md`
-      const color = COLOR_PALETTE[get().notes.length % COLOR_PALETTE.length]
+      const color = '#3b82f6'
       const now = new Date().toISOString()
-      const note: Note = { id, title, filePath, color, tags: [], createdAt: now, updatedAt: now }
+      const note: Note = { id, title, filePath, color, tags: tags ?? [], createdAt: now, updatedAt: now }
 
       await fs.writeFile(filePath, content || `# ${title}\n\n`)
+
+      // Read-modify-write to avoid overwriting notes from other windows
+      let diskNotes: Note[] = []
+      try {
+        diskNotes = JSON.parse(await fs.readFile('notes/index.json'))
+      } catch { /* empty or missing */ }
+      diskNotes.push(note)
+      await fs.writeFile('notes/index.json', JSON.stringify(diskNotes, null, 2))
+
       set((s) => { s.notes.push(note) })
-      await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
       return note
     },
 
@@ -141,5 +170,25 @@ export const useNoteStore = create<NoteStore>()(
     },
 
     setActiveNote: (id) => set({ activeNoteId: id }),
+
+    setSortBy: (sort) => {
+      set({ sortBy: sort })
+      store.set('notePrefs', { sortBy: sort, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
+    },
+
+    setViewMode: (mode) => {
+      set({ viewMode: mode })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: mode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
+    },
+
+    setEditorMode: (mode) => {
+      set({ editorMode: mode })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: mode, tocMaxLevel: get().tocMaxLevel })
+    },
+
+    setTocMaxLevel: (level) => {
+      set({ tocMaxLevel: Math.max(1, Math.min(6, level)) })
+      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: level })
+    },
   }))
 )

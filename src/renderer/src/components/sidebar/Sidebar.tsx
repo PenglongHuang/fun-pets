@@ -1,82 +1,66 @@
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import PanelRouter from './PanelRouter'
 import IconStrip from './IconStrip'
-import PetAvatar from '@/components/pet/PetAvatar'
+import TitleBar from './TitleBar'
 import { usePetStore } from '@/stores/petStore'
-import { motion } from 'motion/react'
+import { windowApi } from '@/lib/ipc'
+import GlobalToast from '@/components/common/GlobalToast'
 
 export default function Sidebar() {
-  const [activePanel, setActivePanel] = useState<'planner' | 'timer' | 'notes' | 'settings'>('planner')
-  const setWindowMode = usePetStore((s) => s.setWindowMode)
+  const activePanel = usePetStore((s) => s.activePanel)
+  const setActivePanel = usePetStore((s) => s.setActivePanel)
+  const tocVisible = usePetStore((s) => s.tocVisible)
 
   return (
     <div
-      className="h-full flex overflow-hidden"
+      className="flex flex-col overflow-hidden h-full"
       style={{
+        position: 'relative',
         borderRadius: 'var(--radius-xl)',
         background: 'rgba(28, 28, 30, 1)',
         border: '0.5px solid rgba(255,255,255,0.10)',
         boxShadow: '0 8px 40px rgba(0,0,0,0.25), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        minWidth: 360,
       }}
     >
-      {/* Left: Panel content */}
-      <PanelRouter activePanel={activePanel} />
+      {/* Title bar */}
+      <TitleBar />
 
-      {/* Divider */}
-      <div style={{ width: 1, background: 'var(--separator)', flexShrink: 0 }} />
+      {/* Content area: PanelRouter + IconStrip */}
+      <div className="flex flex-1 min-h-0">
+        {/* Side panel slot (TOC renders here via portal) */}
+        <AnimatePresence>
+          {tocVisible && (
+            <motion.div
+              id="side-panel-slot"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 140, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{ flexShrink: 0, overflow: 'hidden' }}
+            />
+          )}
+        </AnimatePresence>
+        {/* Left: Panel content */}
+        <PanelRouter activePanel={activePanel} />
 
-      {/* Right: icon rail */}
-      <div
-        className="w-[72px] shrink-0 flex flex-col items-center py-3"
-        style={{
-          height: '100%',
-          position: 'relative',
-          background: 'rgba(255,255,255,0.03)',
-        }}
-      >
-        {/* Pet */}
-        <div className="flex flex-col items-center" style={{ marginBottom: 6 }}>
-          <PetAvatar size={52} showTimer={false} onClick={() => setWindowMode('pet')} />
-        </div>
+        {/* Divider */}
+        <div style={{ width: 1, background: 'var(--separator)', flexShrink: 0 }} />
 
-        {/* Separator */}
-        <div style={{ width: 28, height: 1, background: 'var(--separator)', margin: '6px 0' }} />
-
-        {/* Nav */}
-        <IconStrip activePanel={activePanel} onToggle={setActivePanel} />
-
-        {/* Close — absolute bottom */}
-        <motion.button
-          onClick={() => setWindowMode('pet')}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+        {/* Right: icon rail (no pet avatar, no close button) */}
+        <div
+          className="w-[72px] shrink-0 flex flex-col items-center py-3"
           style={{
-            position: 'absolute',
-            bottom: 10,
-            width: 36,
-            height: 36,
-            borderRadius: 'var(--radius-md)',
-            background: 'transparent',
-            color: 'var(--accent-pink)',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background 0.2s ease',
+            background: 'rgba(255,255,255,0.03)',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,55,95,0.12)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-          }}
-          title="关闭 (ESC)"
+          onDoubleClick={() => windowApi.restoreDefault()}
         >
-          <X size={16} strokeWidth={1.8} />
-        </motion.button>
+          {/* Nav only */}
+          <IconStrip activePanel={activePanel} onToggle={setActivePanel} />
+        </div>
       </div>
+
+      <GlobalToast />
     </div>
   )
 }

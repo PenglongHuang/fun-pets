@@ -6,6 +6,7 @@ export interface Plan {
   filePath: string
   color: string
   planType: PlanType
+  tags?: string[]
   createdAt: string
   updatedAt: string
 }

@@ -18,14 +18,15 @@ export default function CalendarView() {
   const plans = usePlanStore((s) => s.plans)
   const getPlansForDate = usePlanStore((s) => s.getPlansForDate)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
-  const [year, setYear] = useState(new Date().getFullYear())
-  const [month, setMonth] = useState(new Date().getMonth())
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayStr)
 
   const daysInMonth = getDaysInMonth(year, month)
   const firstDay = getFirstDayOfWeek(year, month)
-  const today = new Date()
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   const datePlans = useMemo(() => {
     if (!selectedDate) return []

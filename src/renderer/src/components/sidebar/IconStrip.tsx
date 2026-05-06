@@ -73,7 +73,7 @@ export default function IconStrip({ activePanel, onToggle }: IconStripProps) {
                   borderRadius: 2,
                   background: 'var(--accent-blue)',
                 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                transition={{ type: 'tween', duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
               />
             )}
           </motion.button>

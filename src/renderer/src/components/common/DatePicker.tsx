@@ -140,9 +140,7 @@ export default function DatePicker({ value, onChange, mode = 'date' }: DatePicke
                 fontWeight: isToday || isSelected ? 600 : 400,
                 background: isSelected
                   ? 'rgba(10,132,255,0.20)'
-                  : isToday
-                    ? 'rgba(10,132,255,0.08)'
-                    : 'transparent',
+                  : 'transparent',
                 color: isSelected
                   ? 'var(--accent-blue)'
                   : isToday
@@ -154,7 +152,7 @@ export default function DatePicker({ value, onChange, mode = 'date' }: DatePicke
               onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = isToday ? 'rgba(10,132,255,0.08)' : 'transparent'
+                  e.currentTarget.style.background = 'transparent'
                 }
               }}
             >

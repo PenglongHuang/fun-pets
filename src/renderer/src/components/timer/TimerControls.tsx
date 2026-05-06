@@ -22,7 +22,7 @@ export default function TimerControls({ status, onPause, onStart, onResume, onSk
     else onResume()
   }, [isRunning, isIdle, onPause, onStart, onResume])
 
-  const primaryColor = isRunning ? 'var(--accent-blue)' : 'var(--accent-purple)'
+  const primaryColor = 'var(--accent-blue)'
 
   return (
     <div className="flex items-center justify-center gap-6">
@@ -65,10 +65,10 @@ export default function TimerControls({ status, onPause, onStart, onResume, onSk
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: `0 2px 16px ${isRunning ? 'rgba(10,132,255,0.35)' : 'rgba(191,90,242,0.35)'}`,
+          boxShadow: '0 2px 16px rgba(10,132,255,0.35)',
           transition: 'background 0.3s ease, box-shadow 0.3s ease',
         }}
-        title={isRunning ? '暂停' : isIdle ? '开始专注' : '继续'}
+        title={isRunning ? '暂停' : isIdle ? '开始' : '继续'}
       >
         {isRunning
           ? <Pause size={20} strokeWidth={2} />
