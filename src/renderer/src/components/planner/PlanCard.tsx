@@ -117,9 +117,15 @@ export default function PlanCard({
           cursor: 'pointer',
           transition: 'background 0.2s ease, border-color 0.2s ease',
           position: 'relative',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onMoreClick(plan.id, new DOMRect(e.clientX, e.clientY, 0, 0))
+        }}
       >
         {/* 3px gradient vertical indicator on left edge */}
         <div
@@ -274,9 +280,15 @@ export default function PlanCard({
         cursor: 'pointer',
         position: 'relative',
         transition: 'background 0.2s ease, border-color 0.2s ease',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onMoreClick(plan.id, new DOMRect(e.clientX, e.clientY, 0, 0))
+      }}
     >
       {/* 2.5px top color bar */}
       <div

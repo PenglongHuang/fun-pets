@@ -20,6 +20,7 @@ interface PlanListProps {
 
 export default function PlanList({ onSwitchToCalendar }: PlanListProps) {
   const plans = usePlanStore((s) => s.plans)
+  const loaded = usePlanStore((s) => s.loaded)
   const createPlan = usePlanStore((s) => s.createPlan)
   const deletePlan = usePlanStore((s) => s.deletePlan)
   const deletePlans = usePlanStore((s) => s.deletePlans)
@@ -78,10 +79,10 @@ export default function PlanList({ onSwitchToCalendar }: PlanListProps) {
 
   useEffect(() => {
     if (activeFilterTag !== null) {
-      const remaining = filteredPlans.filter((p) => (p.tags ?? []).includes(activeFilterTag))
+      const remaining = plans.filter((p) => (p.tags ?? []).includes(activeFilterTag))
       if (remaining.length === 0) setActiveFilterTag(null)
     }
-  }, [filteredPlans, activeFilterTag])
+  }, [plans, activeFilterTag])
 
   useEffect(() => {
     if (planTypeFilter !== 'all') {
@@ -158,6 +159,14 @@ export default function PlanList({ onSwitchToCalendar }: PlanListProps) {
       setEditMode(false)
     }
     setDeleteTarget(null)
+  }
+
+  if (!loaded) {
+    return (
+      <div style={{ fontSize: 12, color: '#48484a', textAlign: 'center', padding: '32px 0' }}>
+        加载中...
+      </div>
+    )
   }
 
   return (

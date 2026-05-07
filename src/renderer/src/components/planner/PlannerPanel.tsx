@@ -14,7 +14,10 @@ export default function PlannerPanel() {
   if (activePlanId) return <PlanEditor planId={activePlanId} />
 
   if (view === 'calendar') {
-    return <CalendarView onBackToList={() => setView('list')} />
+    return <CalendarView onSwitchView={(mode) => {
+      usePlanStore.getState().setViewMode(mode)
+      setView('list')
+    }} />
   }
 
   return <PlanList onSwitchToCalendar={() => setView('calendar')} />

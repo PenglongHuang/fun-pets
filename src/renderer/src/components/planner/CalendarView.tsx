@@ -15,10 +15,10 @@ function getFirstDayOfWeek(year: number, month: number): number {
 }
 
 interface CalendarViewProps {
-  onBackToList: () => void
+  onSwitchView: (mode: 'card' | 'compact') => void
 }
 
-export default function CalendarView({ onBackToList }: CalendarViewProps) {
+export default function CalendarView({ onSwitchView }: CalendarViewProps) {
   const plans = usePlanStore((s) => s.plans)
   const getPlansForDate = usePlanStore((s) => s.getPlansForDate)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
@@ -95,7 +95,7 @@ export default function CalendarView({ onBackToList }: CalendarViewProps) {
             padding: 2,
           }}>
             <button
-              onClick={onBackToList}
+              onClick={() => onSwitchView('card')}
               style={{
                 padding: '3px 6px',
                 borderRadius: 6,
@@ -109,7 +109,7 @@ export default function CalendarView({ onBackToList }: CalendarViewProps) {
               ☰
             </button>
             <button
-              onClick={onBackToList}
+              onClick={() => onSwitchView('compact')}
               style={{
                 padding: '3px 6px',
                 borderRadius: 6,
