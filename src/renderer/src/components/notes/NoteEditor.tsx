@@ -73,6 +73,7 @@ export default function NoteEditor() {
   const [contextMenuState, setContextMenuState] = useState<{
     anchorRect: DOMRect
     mode: 'edit' | 'live' | 'preview'
+    selection: { start: number; end: number } | null
   } | null>(null)
   const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null)
   const selection = useTextSelection(textareaEl)
@@ -230,30 +231,60 @@ export default function NoteEditor() {
     }
   }
 
-  const handleEditorContextMenu = useCallback((e: React.MouseEvent) => {
+  const handleEditorContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
     e.preventDefault()
+    const ta = e.currentTarget
     setContextMenuState({
       anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
       mode,
+      selection: { start: ta.selectionStart, end: ta.selectionEnd },
     })
   }, [mode])
 
-  const handleApplyOperation = useCallback((newText: string, newStart: number, newEnd: number) => {
-    handleChange(newText)
+  const handleApplyOperation = useCallback((newText: string, cursorStart: number, cursorEnd: number) => {
+    if (!textareaEl) return
+
+    // Find the contiguous diff range between old and new text
+    let start = 0
+    const minLen = Math.min(content.length, newText.length)
+    while (start < minLen && content[start] === newText[start]) start++
+
+    let oldEnd = content.length
+    let newEnd = newText.length
+    while (oldEnd > start && newEnd > start && content[oldEnd - 1] === newText[newEnd - 1]) {
+      oldEnd--
+      newEnd--
+    }
+
+    // Apply change via execCommand so it lands on browser's native undo stack
+    textareaEl.focus()
+    textareaEl.selectionStart = start
+    textareaEl.selectionEnd = oldEnd
+    document.execCommand('insertText', false, newText.substring(start, newEnd))
+
+    // Restore cursor to where the operation says it should be
     requestAnimationFrame(() => {
-      if (textareaEl) {
-        textareaEl.focus()
-        textareaEl.setSelectionRange(newStart, newEnd)
-      }
+      textareaEl.setSelectionRange(cursorStart, cursorEnd)
     })
+
     setContextMenuState(null)
-  }, [handleChange, textareaEl])
+  }, [content, textareaEl])
 
   const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setContextMenuState({
       anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
       mode: 'preview',
+      selection: null,
+    })
+  }, [])
+
+  const handleLivePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
     })
   }, [])
 
@@ -359,6 +390,7 @@ export default function NoteEditor() {
             onChange={handleChange}
             onCursorLineChange={setCurrentLineIndex}
             onContextMenu={handleEditorContextMenu}
+            onPreviewContextMenu={handleLivePreviewContextMenu}
           />
         ) : mode === 'edit' ? (
           <MarkdownEditor
@@ -399,10 +431,10 @@ export default function NoteEditor() {
           onClose={() => setContextMenuState(null)}
           mode={contextMenuState.mode}
           text={content}
-          selectionStart={selection.selection.start}
-          selectionEnd={selection.selection.end}
-          selectedText={selection.selectedText}
-          hasSelection={selection.hasSelection}
+          selectionStart={contextMenuState.selection?.start ?? 0}
+          selectionEnd={contextMenuState.selection?.end ?? 0}
+          selectedText={contextMenuState.selection ? content.substring(contextMenuState.selection.start, contextMenuState.selection.end) : ''}
+          hasSelection={contextMenuState.selection ? contextMenuState.selection.start !== contextMenuState.selection.end : false}
           onApplyOperation={handleApplyOperation}
           previewContent={content}
         />,

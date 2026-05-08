@@ -15,7 +15,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, onCursorL
     const start = ta.selectionStart
 
     if (e.shiftKey) {
-      // Shift+Tab: remove up to 2 leading spaces from current line
       const lineStart = value.lastIndexOf('\n', start - 1) + 1
       const leading = value.slice(lineStart, start)
       const spacesToRemove = Math.min(2, leading.length - leading.trimStart().length)
@@ -25,7 +24,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, onCursorL
         document.execCommand('delete', false)
       }
     } else {
-      // Tab: insert 2 spaces (execCommand keeps it on the undo stack)
       document.execCommand('insertText', false, '  ')
     }
   }

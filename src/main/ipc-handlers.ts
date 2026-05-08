@@ -3,7 +3,7 @@ import { readFile, writeFile, unlink, readdir, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { getStore } from './store'
-import { resizeWindow, getMainWindow, expandToPanelMode, collapseToPetMode, startPetCursorTracking, stopPetCursorTracking, setPetDragging, movePetDrag } from './window'
+import { resizeWindow, getMainWindow, expandToPanelMode, collapseToPetMode, startPetCursorTracking, stopPetCursorTracking, setPetDragging, movePetDrag, toggleAlwaysOnTop } from './window'
 import { IPC } from '../shared/ipc-channels'
 import { registerHotkeys } from './hotkey'
 
@@ -183,6 +183,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.WINDOW_MINIMIZE, () => {
     getMainWindow()?.minimize()
+  })
+
+  ipcMain.handle(IPC.WINDOW_TOGGLE_ALWAYS_ON_TOP, () => {
+    return toggleAlwaysOnTop()
   })
 
   // Notification

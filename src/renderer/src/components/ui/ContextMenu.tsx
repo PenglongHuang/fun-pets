@@ -55,25 +55,27 @@ const SubmenuPanel = forwardRef<HTMLDivElement, {
   onClose: () => void
 }>(({ items, parentRect, onClose }, ref) => {
   const submenuStyle: React.CSSProperties = useMemo(() => {
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const menuWidth = 160
-    const menuHeight = Math.min(items.length * 36 + 8, 400)
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const menuW = 160
+    const menuH = Math.min(items.length * 36 + 8, 400)
 
-    let right = viewportWidth - parentRect.right + 4
+    let left = parentRect.right + 4
+    if (left + menuW > vw - 8) {
+      left = parentRect.left - menuW - 4
+    }
+    left = Math.max(8, left)
+
     let top = parentRect.top
-
-    if (parentRect.right + menuWidth > viewportWidth - 8) {
-      right = viewportWidth - parentRect.left + menuWidth + 4
+    if (top + menuH > vh - 8) {
+      top = vh - menuH - 8
     }
-    if (top + menuHeight > viewportHeight - 8) {
-      top = viewportHeight - menuHeight - 8
-    }
+    top = Math.max(8, top)
 
     return {
       position: 'fixed' as const,
       top,
-      right,
+      left,
       background: 'rgba(58,58,60,0.98)',
       border: '0.5px solid rgba(255,255,255,0.12)',
       borderRadius: 10,
@@ -157,19 +159,33 @@ export default function ContextMenu({ items, anchorRect, onClose }: ContextMenuP
         onClose()
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
   }, [onClose])
+
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const menuW = 180
+  const menuH = Math.min(items.length * 34 + 8, vh - 16)
+
+  let top = anchorRect.bottom + 4
+  if (top + menuH > vh - 8) top = anchorRect.top - menuH - 4
+  top = Math.max(8, Math.min(top, vh - menuH - 8))
+
+  let left = anchorRect.left
+  if (left + menuW > vw - 8) left = vw - menuW - 8
+  left = Math.max(8, left)
 
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
-    top: anchorRect.bottom + 4,
-    right: window.innerWidth - anchorRect.right,
+    top,
+    left,
   }
 
   let hadDanger = false
 
   return (
+    <>
     <AnimatePresence>
       <motion.div
         ref={menuRef}
@@ -206,7 +222,16 @@ export default function ContextMenu({ items, anchorRect, onClose }: ContextMenuP
             <div key={i}>
               {showSeparator && <div style={{ height: 0.5, background: 'rgba(255,255,255,0.08)', margin: '2px 8px' }} />}
               <button
-                onClick={() => { if (!item.disabled) { item.onClick(); onClose() } }}
+                onClick={(e) => {
+                  if (item.disabled) return
+                  if (item.submenu) {
+                    setActiveSubmenu(item.submenu)
+                    setSubmenuAnchor(e.currentTarget.getBoundingClientRect())
+                    return
+                  }
+                  item.onClick()
+                  onClose()
+                }}
                 onMouseEnter={(e) => {
                   if (item.disabled) return
                   if (item.submenu) {
@@ -241,6 +266,7 @@ export default function ContextMenu({ items, anchorRect, onClose }: ContextMenuP
           )
         })}
       </motion.div>
+      </AnimatePresence>
       {activeSubmenu && submenuAnchor && createPortal(
         <SubmenuPanel
           items={activeSubmenu}
@@ -250,6 +276,6 @@ export default function ContextMenu({ items, anchorRect, onClose }: ContextMenuP
         />,
         document.body
       )}
-    </AnimatePresence>
+    </>
   )
 }

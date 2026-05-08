@@ -8,9 +8,10 @@ interface SplitPaneLiveEditorProps {
   onCursorLineChange?: (lineIndex: number | null) => void
   placeholder?: string
   onContextMenu?: (e: React.MouseEvent<HTMLTextAreaElement>) => void
+  onPreviewContextMenu?: (e: React.MouseEvent) => void
 }
 
-export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder, onContextMenu }: SplitPaneLiveEditorProps) {
+export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder, onContextMenu, onPreviewContextMenu }: SplitPaneLiveEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previewPaneRef = useRef<HTMLDivElement>(null)
   const syncingRef = useRef(false)
@@ -55,7 +56,7 @@ export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChang
       <div style={{ width: 1, background: 'var(--separator)', flexShrink: 0 }} />
 
       {/* Preview pane */}
-      <div ref={previewPaneRef} className="live-preview-pane" style={{ flex: 1, overflow: 'auto', minWidth: 0, minHeight: 0, padding: '0 8px' }}>
+      <div ref={previewPaneRef} className="live-preview-pane" style={{ flex: 1, overflow: 'auto', minWidth: 0, minHeight: 0, padding: '0 8px', userSelect: 'text' }} onContextMenu={(e) => onPreviewContextMenu?.(e)}>
         <MarkdownPreview content={value} />
       </div>
     </div>

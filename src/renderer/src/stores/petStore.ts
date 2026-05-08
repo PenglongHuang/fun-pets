@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { PetState } from '@/types/pet'
+import { windowApi } from '@/lib/ipc'
 
 interface PetStore {
   state: PetState
@@ -14,9 +15,11 @@ interface PetStore {
   setPetPosition: (pos: { x: number; y: number } | null) => void
   petHovered: boolean
   setPetHovered: (v: boolean) => void
+  isPinned: boolean
+  togglePinned: () => void
 }
 
-export const usePetStore = create<PetStore>((set) => ({
+export const usePetStore = create<PetStore>((set, get) => ({
   state: 'smile',
   setState: (state) => set({ state, lastInteraction: Date.now() }),
   lastInteraction: Date.now(),
@@ -29,4 +32,12 @@ export const usePetStore = create<PetStore>((set) => ({
   setPetPosition: (pos) => set({ petPosition: pos }),
   petHovered: false,
   setPetHovered: (v) => set({ petHovered: v }),
+  isPinned: false,
+  togglePinned: () => {
+    const next = !get().isPinned
+    set({ isPinned: next })
+    windowApi.toggleAlwaysOnTop().catch(() => {
+      set({ isPinned: !next })
+    })
+  },
 }))

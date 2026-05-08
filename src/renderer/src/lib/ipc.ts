@@ -52,6 +52,8 @@ export const windowApi = {
     window.api.windowInvalidate(),
   minimize: (): Promise<void> =>
     window.api.windowMinimize(),
+  toggleAlwaysOnTop: (): Promise<boolean> =>
+    window.api.windowToggleAlwaysOnTop(),
   startPetTracking: (): Promise<void> =>
     window.api.startPetTracking(),
   stopPetTracking: (): Promise<void> =>

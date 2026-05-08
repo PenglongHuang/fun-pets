@@ -47,18 +47,22 @@ export default function useTextSelection(
     const ta = textareaEl
     if (!ta) return
 
-    const events = ['select', 'keyup', 'mouseup', 'focus'] as const
-    const handler = () => {
+    const events = ['select', 'keyup', 'mouseup', 'focus', 'contextmenu'] as const
+    const handler = (eventName: string) => {
       cancelAnimationFrame(rafRef.current)
-      rafRef.current = requestAnimationFrame(updateSelection)
+      if (eventName === 'contextmenu') {
+        updateSelection()
+      } else {
+        rafRef.current = requestAnimationFrame(updateSelection)
+      }
     }
 
-    events.forEach((e) => ta.addEventListener(e, handler))
+    events.forEach((e) => ta.addEventListener(e, (ev: Event) => handler(ev.type)))
     updateSelection()
 
     return () => {
       cancelAnimationFrame(rafRef.current)
-      events.forEach((e) => ta.removeEventListener(e, handler))
+      events.forEach((e) => ta.removeEventListener(e, (ev: Event) => handler(ev.type)))
     }
   }, [textareaEl, updateSelection])
 

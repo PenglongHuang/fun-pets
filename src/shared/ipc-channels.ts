@@ -24,6 +24,7 @@ export const IPC = {
   WINDOW_INVALIDATE: 'window:invalidate',
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MOVE_BY: 'window:moveBy',
+  WINDOW_TOGGLE_ALWAYS_ON_TOP: 'window:toggleAlwaysOnTop',
   SET_WINDOW_MODE: 'window:setMode',
   NOTIFICATION_SHOW: 'notification:show',
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
