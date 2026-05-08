@@ -1,20 +1,19 @@
-<h1 align="center">FunBuddy AI 桌面萌宠助手</h1>
+<h1 align="center">FunBuddy</h1>
 
 <p align="center">
-  <strong>一只住在桌面上的 AI 萌宠 — 你的智能办公伙伴</strong>
+  <strong>你桌面上住着一只会陪你工作的星星</strong>
 </p>
 
 <p align="center">
-  不仅能陪你专注工作、管理计划、记录灵感，未来还将掌控你的 Coding Agent、<br>
-  构建个人知识库、自动操作浏览器与桌面、接入即时通讯平台
+  它会在你专注时安静地眨眼，在你完成目标时为你放一场烟花。<br>
+  番茄钟、计划管理、Markdown 笔记 — 所有你需要的，都在一个可爱的面板里。
 </p>
 
 <p align="center">
-  <a href="#当前功能-v01x">当前功能</a> &bull;
+  <a href="#核心功能">功能</a> &bull;
   <a href="#ai-路线图">AI 路线图</a> &bull;
   <a href="#技术栈">技术栈</a> &bull;
-  <a href="#快速开始">快速开始</a> &bull;
-  <a href="#开发指南">开发</a> &bull;
+  <a href="#快速开始">安装</a> &bull;
   <a href="#license">License</a>
 </p>
 
@@ -24,275 +23,68 @@
 
 ---
 
-## 当前功能 (v0.1.x)
+## 核心功能
 
-### 萌宠陪伴
+### 一只活着的桌面萌宠
 
-- 星星造型宠物，支持多种动画状态（开心、专注、困倦）
-- 鼠标悬停互动动画（旋转、弹跳、思考气泡、爱心）
-- 自动眨眼周期，点击触发状态变化
-- 可拖拽定位，常驻桌面右侧
+不是静态图标 — 是一只有情绪的星星。悬停时它会旋转、弹跳、冒爱心；专注时它单眼眨巴为你加油；完成目标时它双眼弯弯、满屏彩纸庆祝。它可以缩成桌面角落的小宠物，也可以一键展开为功能完整的面板。
 
-### 番茄钟专注
+### 番茄钟：让专注有仪式感
 
-- SVG 环形进度条显示剩余时间
-- 专注 / 短休息 / 长休息三阶段自动切换
-- 完成时触发宠物庆祝动画 + 彩纸特效
-- 今日统计：完成轮数与累计专注分钟数
-- 支持后台运行，跨重启状态自动恢复
+开始一个番茄钟，选一个计划，然后沉下去。三阶段自动轮转（专注 → 短休 → 长休 → …），到了该休息的时候，萌宠会提醒你。每个番茄钟都有记录 — 你可以回溯今天专注了多久、每个计划花了多少分钟。
 
-### 计划日历
+### 计划管理：想到就记，日历上见
 
-- Markdown 格式计划文档，支持日期范围定义
-- Tab 分类列表视图（日/周/月/全部），支持批量管理
-- 日历视图：彩色圆点标记每日/周/月计划覆盖
-- 自动颜色分类（蓝色=日计划、紫色=周计划、琥珀色=月计划）
-- 日期选择器，支持创建指定日期范围的计划
+用 Markdown 写计划，设定日期范围，FunBuddy 自动识别它是日计划、周计划还是月计划，并用不同颜色标记在日历上。卡片视图一目了然，紧凑视图塞进更多信息。标签、搜索、排序 — 找到任何一个计划不超过 3 秒。
 
-### Markdown 笔记
+### Markdown 笔记：写的时候就在预览
 
-- 笔记列表 + 编辑器双栏布局
-- 编辑模式与实时预览一键切换
-- 代码块语法高亮（highlight.js Dracula 主题）
-- 自动分配颜色标签，便于视觉区分
+左边写字，右边实时预览 — 所见即所得。一键打开目录导航，长文档也能瞬间跳到任意章节。加粗、斜体、链接都有快捷键，右键就能格式化 — 写笔记像用 Word 一样顺手。代码块自动高亮，技术笔记也赏心悦目。
 
-### 快速捕获
+### 快速捕获：灵感不过夜
 
-- 全局快捷键 `Ctrl+Shift+N` 呼出浮动输入框
-- 一闪念即可保存为笔记，不打断工作流
-
-### 设置面板
-
-- 存储目录自定义选择，支持历史记录切换
-- 番茄钟参数调节（时长、休息间隔、轮次）
-- 开机自启动 / 关闭最小化到系统托盘
-- JSON 数据导出与数据清理
+`Ctrl+Shift+N`，任何时候、任何应用。一个浮动小窗弹出来，打完字回车就保存为笔记，自动打上"快捷笔记"标签。零打断，灵感落地只要 2 秒。
 
 ---
 
 ## AI 路线图
 
-> FunBuddy 的终极目标是成为你的 AI 办公中枢 — 萌宠不仅是陪伴，更是你和 AI 能力之间的桥梁。
+> 萌宠不只是陪伴 — 它正在成为你的 AI 办公中枢。
 
-### 1. Coding Agent 控制中枢
-
-将 FunBuddy 打造成统一操控 Coding Agent 的桌面入口：
-
-- 集成 [Claude Code](https://claude.ai/code)、[OpenAI Codex](https://github.com/openai/codex) 等主流 Coding Agent
-- 可视化任务编排：在 FunBuddy 面板中创建、分发、追踪 Agent 任务
-- 多 Agent 协同：并行调度多个 Agent 处理不同子任务
-- 实时进度面板：代码变更预览、执行日志、结果审查
-
-### 2. AI 知识库与记忆
-
-让萌宠拥有长期记忆，成为你的"第二大脑"：
-
-- 本地优先的向量知识库，自动索引项目代码、笔记、计划
-- 跨会话记忆：记住你的偏好、工作习惯、项目上下文
-- 语义检索：用自然语言查询历史笔记与代码片段
-- 智能关联：自动发现笔记间的隐含联系并推荐
-
-### 3. 自动化浏览器与桌面操作
-
-通过视觉理解驱动自动化，让萌宠替你完成重复操作：
-
-- 基于 [Midscene.js](https://midscenejs.com/) 的浏览器自动化：表单填写、数据抓取、页面操作
-- 桌面级自动化：启动应用、操作文件、跨窗口协作
-- 自然语言驱动：用中文描述任务，萌宠自动规划并执行操作步骤
-- 操作录制与回放：录制一次操作流程，后续一键重复执行
-
-### 4. 即时通讯平台接入
-
-让萌宠成为你的消息中枢：
-
-- 接入微信、钉钉、飞书、Telegram、Slack 等主流 IM
-- AI 智能摘要：自动总结未读消息，提炼关键信息
-- 上下文感知回复建议：根据当前任务和知识库内容推荐回复
-- 消息自动化：定时提醒、条件触发、群消息过滤与转发
+- **Coding Agent 控制中枢** — 在面板里调度 Claude Code、OpenAI Codex，可视化追踪多 Agent 任务
+- **AI 知识库与记忆** — 让萌宠拥有长期记忆，用自然语言搜到你写过的任何东西
+- **浏览器与桌面自动化** — 用自然语言描述任务，萌宠自动操作浏览器和桌面应用
+- **即时通讯集成** — 接入微信、飞书、Slack，AI 摘要 + 智能回复建议
 
 ---
 
 ## 技术栈
 
-| 层级 | 技术 | 用途 |
-|------|------|------|
-| 桌面框架 | [Electron](https://www.electronjs.org/) 36 | 透明窗口、系统托盘、原生 API |
-| 前端框架 | [React](https://react.dev/) 19 + TypeScript | 组件化 UI |
-| 样式方案 | [Tailwind CSS](https://tailwindcss.com/) 4 | 毛玻璃风格设计系统 |
-| 图标库 | [Lucide React](https://lucide.dev/guides/languages/introduction-to-lucide-react) | 全局统一图标 |
-| 动画引擎 | [Motion](https://motion.dev/) (Framer Motion) | 面板形变、弹性过渡 |
-| 状态管理 | [Zustand](https://zustand.docs.pmnd.rs/) + [Immer](https://immerjs.github.io/immer/) | 轻量响应式状态 |
-| 数据持久化 | [electron-store](https://github.com/sindresorhus/electron-store) | 设置与应用状态 |
-| 文件存储 | Node.js fs | 计划与笔记 (.md) |
-| Markdown 渲染 | [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | 笔记/计划预览与代码高亮 |
-| 构建工具 | [electron-vite](https://electron-vite.org/) | 三进程构建 + HMR |
-| 打包分发 | [electron-builder](https://www.electron.build/) | NSIS Windows 安装包 |
+| 技术 | 用途 |
+|------|------|
+| [Electron](https://www.electronjs.org/) 42 | 透明窗口、系统托盘、全局快捷键 |
+| [React](https://react.dev/) 19 + TypeScript | 组件化 UI |
+| [Tailwind CSS](https://tailwindcss.com/) 4 | 毛玻璃设计系统 |
+| [Motion](https://motion.dev/) | 流畅动画与面板形变 |
+| [Zustand](https://zustand.docs.pmnd.rs/) + Immer | 响应式状态管理 |
+| [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | Markdown 渲染与代码高亮 |
+| [electron-vite](https://electron-vite.org/) | 构建与热更新 |
 
 ---
 
 ## 快速开始
 
-### 前置要求
-
-- Node.js >= 18
-- npm >= 9
-- Windows 10/11（当前仅支持 Windows）
-
-### 安装与运行
-
 ```bash
-# 克隆仓库
 git clone https://github.com/PenglongHuang/fun-buddy.git
 cd fun-buddy
-
-# 安装依赖
 npm install
-
-# 启动开发模式
 npm run dev
-
-# 构建生产版本
-npm run build
-
-# 打包 Windows 安装程序
-npm run build:win
 ```
 
----
-
-## 开发指南
-
-### 项目架构
-
-FunBuddy 采用 Electron 三层架构：
-
-```
-系统层 (Electron Main Process)
-  ├── 窗口管理（透明、无边框、置顶）
-  ├── 系统托盘 + 全局快捷键
-  ├── IPC 处理器注册
-  └── 文件 I/O（plans/*.md, notes/*.md）
-       │
-IPC Bridge (contextBridge)
-       │
-UI 层 (React Renderer)
-  ├── 侧边栏容器（萌宠 + 图标导航）
-  ├── 功能面板（计划、番茄钟、笔记、设置）
-  └── 共享组件（GlassPanel、动画、彩纸）
-       │
-数据层 (Zustand + Storage)
-  ├── electron-store JSON（设置、应用状态、计时器）
-  └── 文件系统（用户目录下的 plans/, notes/）
-```
-
-### 开发命令
-
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 启动开发服务器（HMR 热更新） |
-| `npm run build` | 构建生产版本到 `out/` |
-| `npm run preview` | 预览生产构建 |
-| `npm run build:win` | 构建 + 打包 Windows 安装程序 |
-
-### 设计规范
-
-- UI 风格参考 Apple HIG (Human Interface Guidelines)
-- 毛玻璃效果 (Glassmorphism) 主题
-- 深色模式默认配色
-- 所有文本为中文界面
-
----
-
-## 项目结构
-
-```
-fun-buddy/
-├── resources/                  # 应用资源
-│   └── icon.svg               # 应用图标
-├── src/
-│   ├── main/                  # Electron 主进程
-│   │   ├── index.ts           # 应用生命周期、单实例锁
-│   │   ├── window.ts          # 透明窗口管理
-│   │   ├── tray.ts            # 系统托盘
-│   │   ├── ipc-handlers.ts    # IPC 处理器注册
-│   │   ├── store.ts           # electron-store 初始化
-│   │   └── hotkey.ts          # 全局快捷键
-│   ├── preload/               # 预加载脚本
-│   │   ├── index.ts           # contextBridge API 桥接
-│   │   └── index.d.ts         # 类型声明
-│   ├── renderer/              # React 渲染进程
-│   │   ├── index.html
-│   │   └── src/
-│   │       ├── App.tsx        # 根组件（含快速捕获）
-│   │       ├── main.tsx       # 入口
-│   │       ├── styles/global.css  # 设计系统 + 动画
-│   │       ├── components/    # UI 组件
-│   │       │   ├── pet/       # 萌宠相关
-│   │       │   ├── planner/   # 计划面板
-│   │       │   ├── timer/     # 番茄钟面板
-│   │       │   ├── notes/     # 笔记面板
-│   │       │   ├── settings/  # 设置面板
-│   │       │   ├── sidebar/   # 侧边栏导航
-│   │       │   └── common/    # 共享组件
-│   │       ├── stores/        # Zustand 状态管理
-│   │       ├── hooks/         # 自定义 Hooks
-│   │       ├── lib/           # 工具库
-│   │       └── types/         # TypeScript 类型定义
-│   └── shared/                # 主进程/渲染进程共享
-│       ├── ipc-channels.ts    # IPC 通道常量
-│       └── store-schema.ts    # 数据模型定义
-├── electron.vite.config.ts    # electron-vite 配置
-├── electron-builder.yml       # 打包配置
-├── package.json
-├── tsconfig.json              # TypeScript 项目引用配置
-├── tsconfig.node.json         # 主进程/预加载 TS 配置
-├── tsconfig.web.json          # 渲染进程 TS 配置
-└── .npmrc                     # npm 镜像配置
-```
-
----
-
-## Contributing
-
-欢迎贡献！请遵循以下流程：
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feat/amazing-feature`)
-3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feat/amazing-feature`)
-5. 提交 Pull Request
-
-### 提交信息规范
-
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
-
-| 类型 | 说明 |
-|------|------|
-| `feat:` | 新功能 |
-| `fix:` | Bug 修复 |
-| `docs:` | 文档更新 |
-| `style:` | 代码格式调整 |
-| `refactor:` | 重构 |
-| `chore:` | 构建/工具变更 |
+需要 Node.js >= 18，当前仅支持 Windows 10/11。
 
 ---
 
 ## License
 
-本项目采用 [Apache License 2.0](LICENSE) 开源。
-
-```
-Copyright 2026 Penglong Huang
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+[Apache License 2.0](LICENSE) &copy; Penglong Huang
