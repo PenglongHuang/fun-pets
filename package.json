@@ -1,7 +1,7 @@
 {
-  "name": "fun-pets",
+  "name": "fun-buddy",
   "version": "0.1.0",
-  "description": "FunPets - 桌面萌宠办公助手",
+  "description": "FunBuddy - AI 桌面伙伴助手",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "node launch.mjs",
@@ -16,8 +16,7 @@
     "electron-store": "^10.0.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^1.11.0",
-    "marked": "^18.0.2",
-    "vditor": "^3.11.2"
+    "marked": "^18.0.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.4",
@@ -29,7 +28,7 @@
     "@vitejs/plugin-react": "^4.4.1",
     "canvas-confetti": "^1.9.3",
     "cross-env": "^10.1.0",
-    "electron": "^36.9.5",
+    "electron": "^42.0.0",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.0",
     "immer": "^10.1.1",

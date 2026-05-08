@@ -14,7 +14,11 @@ function getFirstDayOfWeek(year: number, month: number): number {
   return day === 0 ? 6 : day - 1
 }
 
-export default function CalendarView() {
+interface CalendarViewProps {
+  onSwitchView: (mode: 'card' | 'compact') => void
+}
+
+export default function CalendarView({ onSwitchView }: CalendarViewProps) {
   const plans = usePlanStore((s) => s.plans)
   const getPlansForDate = usePlanStore((s) => s.getPlansForDate)
   const setActivePlan = usePlanStore((s) => s.setActivePlan)
@@ -69,19 +73,70 @@ export default function CalendarView() {
         <span style={{ font: 'var(--text-headline)', color: 'var(--text-primary)', fontWeight: 600 }}>
           {year}年{month + 1}月
         </span>
-        <motion.button
-          onClick={nextMonth}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          style={{
-            width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-            background: 'transparent', border: 'none',
-            color: 'var(--text-tertiary)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <ChevronRight size={15} />
-        </motion.button>
+        <div className="flex items-center gap-1">
+          <motion.button
+            onClick={nextMonth}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            style={{
+              width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+              background: 'transparent', border: 'none',
+              color: 'var(--text-tertiary)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <ChevronRight size={15} />
+          </motion.button>
+          {/* View toggle */}
+          <div style={{
+            display: 'flex',
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 8,
+            padding: 2,
+          }}>
+            <button
+              onClick={() => onSwitchView('card')}
+              style={{
+                padding: '3px 6px',
+                borderRadius: 6,
+                fontSize: 11,
+                background: 'transparent',
+                color: '#636366',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              ☰
+            </button>
+            <button
+              onClick={() => onSwitchView('compact')}
+              style={{
+                padding: '3px 6px',
+                borderRadius: 6,
+                fontSize: 11,
+                background: 'transparent',
+                color: '#636366',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              ⊞
+            </button>
+            <button
+              style={{
+                padding: '3px 6px',
+                borderRadius: 6,
+                fontSize: 11,
+                background: 'rgba(10,132,255,0.2)',
+                color: '#64D2FF',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              📅
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Weekday headers */}

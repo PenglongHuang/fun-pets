@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { usePlanStore } from '@/stores/planStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
@@ -8,6 +9,8 @@ import { extractH1Title } from '@/utils/markdown'
 import { useToast } from '@/components/common/Toast'
 import TagInput from '@/components/common/TagInput'
 import { getAllTags } from '@/lib/tag-utils'
+import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
+import useTextSelection from '@/hooks/useTextSelection'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -33,6 +36,16 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
   const allTags = useMemo(() => getAllTags(plans), [plans])
+
+  const [contextMenuState, setContextMenuState] = useState<{
+    anchorRect: DOMRect
+    mode: 'edit' | 'preview'
+    selection: { start: number; end: number } | null
+  } | null>(null)
+  const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null)
+  const selection = useTextSelection(textareaEl)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -84,18 +97,70 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
     }
   }, [planId])
 
+  useEffect(() => {
+    if (editorRef.current) {
+      const ta = editorRef.current.querySelector('textarea') as HTMLTextAreaElement | null
+      setTextareaEl(ta)
+    }
+  }, [planId, editMode])
+
+  const handleEditorContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    const ta = e.currentTarget
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'edit',
+      selection: { start: ta.selectionStart, end: ta.selectionEnd },
+    })
+  }, [])
+
+  const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
+    })
+  }, [])
+
   if (!plan) return null
 
-  const handleChange = (newContent: string) => {
+  const handleChange = useCallback((newContent: string) => {
     setContent(newContent)
     setDirty(true)
 
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => doSave(true), AUTO_SAVE_DELAY)
-  }
+  }, [doSave])
+
+  const handleApplyOperation = useCallback((newText: string, cursorStart: number, cursorEnd: number) => {
+    if (!textareaEl) return
+
+    let start = 0
+    const minLen = Math.min(content.length, newText.length)
+    while (start < minLen && content[start] === newText[start]) start++
+
+    let oldEnd = content.length
+    let newEnd = newText.length
+    while (oldEnd > start && newEnd > start && content[oldEnd - 1] === newText[newEnd - 1]) {
+      oldEnd--
+      newEnd--
+    }
+
+    textareaEl.focus()
+    textareaEl.selectionStart = start
+    textareaEl.selectionEnd = oldEnd
+    document.execCommand('insertText', false, newText.substring(start, newEnd))
+
+    requestAnimationFrame(() => {
+      textareaEl.setSelectionRange(cursorStart, cursorEnd)
+    })
+
+    setContextMenuState(null)
+  }, [content, textareaEl])
 
   return (
-    <div className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
+    <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
       <ToastContainer />
 
       {/* Toolbar */}
@@ -164,13 +229,41 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
       />
 
       {/* Content */}
-      <div className="flex-1 min-h-0">
+      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: editMode === 'preview' ? 'auto' : 'hidden' }}>
         {editMode === 'edit' ? (
-          <MarkdownEditor value={content} onChange={handleChange} placeholder="# 计划内容\n\n- [ ] 待办项 1\n- [ ] 待办项 2" />
+          <MarkdownEditor
+            value={content}
+            onChange={handleChange}
+            placeholder="# 计划内容\n\n- [ ] 待办项 1\n- [ ] 待办项 2"
+            onContextMenu={handleEditorContextMenu}
+          />
         ) : (
-          <MarkdownPreview content={content} />
+          <div
+            className="flex-1 min-h-0 overflow-auto"
+            style={{ userSelect: 'text' }}
+            onContextMenu={handlePreviewContextMenu}
+          >
+            <MarkdownPreview content={content} />
+          </div>
         )}
       </div>
+
+      {/* Context Menu Portal */}
+      {contextMenuState && createPortal(
+        <MarkdownContextMenu
+          anchorRect={contextMenuState.anchorRect}
+          onClose={() => setContextMenuState(null)}
+          mode={contextMenuState.mode}
+          text={content}
+          selectionStart={contextMenuState.selection?.start ?? 0}
+          selectionEnd={contextMenuState.selection?.end ?? 0}
+          selectedText={contextMenuState.selection ? content.substring(contextMenuState.selection.start, contextMenuState.selection.end) : ''}
+          hasSelection={contextMenuState.selection ? contextMenuState.selection.start !== contextMenuState.selection.end : false}
+          onApplyOperation={handleApplyOperation}
+          previewContent={content}
+        />,
+        document.body
+      )}
     </div>
   )
 }

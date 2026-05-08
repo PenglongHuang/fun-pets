@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { createMainWindow, setQuitting } from './window'
 import { registerIpcHandlers } from './ipc-handlers'
+import { getStore } from './store'
 import { createTray } from './tray'
 import { registerHotkeys, unregisterHotkeys } from './hotkey'
 
@@ -19,11 +20,12 @@ if (!gotTheLock) {
   })
 
   app.whenReady().then(() => {
-    app.setAppUserModelId('com.funpets.app')
+    app.setAppUserModelId('com.funbuddy.app')
     registerIpcHandlers()
     createMainWindow()
     createTray()
-    registerHotkeys()
+    const hotkey = (getStore().get('settings.app.quickCaptureHotkey') as string) || 'Ctrl+Shift+N'
+    registerHotkeys(hotkey)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

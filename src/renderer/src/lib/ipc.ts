@@ -52,6 +52,8 @@ export const windowApi = {
     window.api.windowInvalidate(),
   minimize: (): Promise<void> =>
     window.api.windowMinimize(),
+  toggleAlwaysOnTop: (): Promise<boolean> =>
+    window.api.windowToggleAlwaysOnTop(),
   startPetTracking: (): Promise<void> =>
     window.api.startPetTracking(),
   stopPetTracking: (): Promise<void> =>
@@ -79,6 +81,11 @@ export const dialog = {
 export const autolaunch = {
   enable: (): Promise<void> => window.api.autolaunchEnable(),
   disable: (): Promise<void> => window.api.autolaunchDisable(),
+}
+
+export const hotkey = {
+  register: (accelerator: string): Promise<{ success: boolean; error?: string }> =>
+    window.api.hotkeyRegister(accelerator),
 }
 
 export const storeEvents = {

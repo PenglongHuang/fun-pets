@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNoteStore } from '@/stores/noteStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
-import LiveMarkdownEditor from '@/components/common/LiveMarkdownEditor'
+import SplitPaneLiveEditor from '@/components/common/SplitPaneLiveEditor'
 import TableOfContents from '@/components/common/TableOfContents'
 import { ArrowLeft, Pencil, Eye, Zap, List } from 'lucide-react'
 import TagInput from '@/components/common/TagInput'
@@ -12,6 +12,8 @@ import { motion } from 'motion/react'
 import { useToast } from '@/components/common/Toast'
 import { extractH1Title } from '@/utils/markdown'
 import { extractHeadings } from '@/lib/toc-extract'
+import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
+import useTextSelection from '@/hooks/useTextSelection'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -67,6 +69,14 @@ export default function NoteEditor() {
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  const [contextMenuState, setContextMenuState] = useState<{
+    anchorRect: DOMRect
+    mode: 'edit' | 'live' | 'preview'
+    selection: { start: number; end: number } | null
+  } | null>(null)
+  const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null)
+  const selection = useTextSelection(textareaEl)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -135,15 +145,23 @@ export default function NoteEditor() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Capture textarea element for useTextSelection (re-runs on mode/note change)
+  useEffect(() => {
+    if (editorRef.current) {
+      const ta = editorRef.current.querySelector('textarea') as HTMLTextAreaElement | null
+      setTextareaEl(ta)
+    }
+  }, [activeNoteId, mode])
+
   if (!note) return null
 
-  const handleChange = (newContent: string) => {
+  const handleChange = useCallback((newContent: string) => {
     setContent(newContent)
     setDirty(true)
 
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => doSave(true), AUTO_SAVE_DELAY)
-  }
+  }, [doSave])
 
   const toggleToc = () => {
     setTocVisible(!tocVisible)
@@ -162,20 +180,42 @@ export default function NoteEditor() {
         for (let i = 0; i < lineIndex; i++) pos += (lines[i]?.length ?? 0) + 1
         textarea.focus()
         textarea.setSelectionRange(pos, pos)
-        textarea.scrollTop = lineIndex * 20
+        const style = getComputedStyle(textarea)
+        const measure = document.createElement('div')
+        measure.style.cssText = [
+          'position:absolute', 'visibility:hidden', 'white-space:pre-wrap',
+          'word-wrap:break-word', `width:${style.width}`, `font:${style.font}`,
+          `padding:${style.padding}`, `border:${style.border}`,
+          `line-height:${style.lineHeight}`, `letter-spacing:${style.letterSpacing}`,
+        ].join(';')
+        measure.textContent = content.substring(0, pos)
+        document.body.appendChild(measure)
+        textarea.scrollTop = measure.offsetHeight - parseInt(style.paddingTop || '0')
+        document.body.removeChild(measure)
       }
       return
     }
 
     if (mode === 'live') {
-      const headings = extractHeadings(content, tocMaxLevel)
-      const targetIdx = headings.findIndex(h => h.lineIndex === lineIndex)
-      if (targetIdx !== -1) {
-        const headingEls = editorRef.current.querySelectorAll('.vditor-ir h1, .vditor-ir h2, .vditor-ir h3, .vditor-ir h4, .vditor-ir h5, .vditor-ir h6')
-        if (headingEls.length > targetIdx) {
-          const el = headingEls[targetIdx] as HTMLElement
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
+      const textarea = editorRef.current.querySelector('textarea')
+      if (textarea) {
+        const lines = content.split('\n')
+        let pos = 0
+        for (let i = 0; i < lineIndex; i++) pos += (lines[i]?.length ?? 0) + 1
+        textarea.focus()
+        textarea.setSelectionRange(pos, pos)
+        const style = getComputedStyle(textarea)
+        const measure = document.createElement('div')
+        measure.style.cssText = [
+          'position:absolute', 'visibility:hidden', 'white-space:pre-wrap',
+          'word-wrap:break-word', `width:${style.width}`, `font:${style.font}`,
+          `padding:${style.padding}`, `border:${style.border}`,
+          `line-height:${style.lineHeight}`, `letter-spacing:${style.letterSpacing}`,
+        ].join(';')
+        measure.textContent = content.substring(0, pos)
+        document.body.appendChild(measure)
+        textarea.scrollTop = measure.offsetHeight - parseInt(style.paddingTop || '0')
+        document.body.removeChild(measure)
       }
       return
     }
@@ -190,6 +230,63 @@ export default function NoteEditor() {
       }
     }
   }
+
+  const handleEditorContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    const ta = e.currentTarget
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode,
+      selection: { start: ta.selectionStart, end: ta.selectionEnd },
+    })
+  }, [mode])
+
+  const handleApplyOperation = useCallback((newText: string, cursorStart: number, cursorEnd: number) => {
+    if (!textareaEl) return
+
+    // Find the contiguous diff range between old and new text
+    let start = 0
+    const minLen = Math.min(content.length, newText.length)
+    while (start < minLen && content[start] === newText[start]) start++
+
+    let oldEnd = content.length
+    let newEnd = newText.length
+    while (oldEnd > start && newEnd > start && content[oldEnd - 1] === newText[newEnd - 1]) {
+      oldEnd--
+      newEnd--
+    }
+
+    // Apply change via execCommand so it lands on browser's native undo stack
+    textareaEl.focus()
+    textareaEl.selectionStart = start
+    textareaEl.selectionEnd = oldEnd
+    document.execCommand('insertText', false, newText.substring(start, newEnd))
+
+    // Restore cursor to where the operation says it should be
+    requestAnimationFrame(() => {
+      textareaEl.setSelectionRange(cursorStart, cursorEnd)
+    })
+
+    setContextMenuState(null)
+  }, [content, textareaEl])
+
+  const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
+    })
+  }, [])
+
+  const handleLivePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
+    })
+  }, [])
 
   return (
     <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
@@ -250,8 +347,8 @@ export default function NoteEditor() {
         {/* Mode toggle */}
         <div className="flex gap-0.5" style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', padding: 2 }}>
           {([
-            ['live', Zap],
             ['edit', Pencil],
+            ['live', Zap],
             ['preview', Eye],
           ] as const).map(([m, Icon]) => (
             <motion.button
@@ -285,13 +382,32 @@ export default function NoteEditor() {
       />
 
       {/* Editor / Preview */}
-      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: 'auto' }}>
+      <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: mode === 'preview' ? 'auto' : 'hidden' }}>
         {mode === 'live' ? (
-          <LiveMarkdownEditor key={activeNoteId} value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
+          <SplitPaneLiveEditor
+            key={activeNoteId}
+            value={content}
+            onChange={handleChange}
+            onCursorLineChange={setCurrentLineIndex}
+            onContextMenu={handleEditorContextMenu}
+            onPreviewContextMenu={handleLivePreviewContextMenu}
+          />
         ) : mode === 'edit' ? (
-          <MarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} placeholder="# 标题\n\n内容..." />
+          <MarkdownEditor
+            value={content}
+            onChange={handleChange}
+            onCursorLineChange={setCurrentLineIndex}
+            placeholder="# 标题\n\n内容..."
+            onContextMenu={handleEditorContextMenu}
+          />
         ) : (
-          <MarkdownPreview content={content} />
+          <div
+            className="flex-1 min-h-0 overflow-auto"
+            style={{ userSelect: 'text' }}
+            onContextMenu={handlePreviewContextMenu}
+          >
+            <MarkdownPreview content={content} />
+          </div>
         )}
       </div>
 
@@ -306,6 +422,23 @@ export default function NoteEditor() {
           open={tocVisible}
         />,
         rootRef.current
+      )}
+
+      {/* Context Menu Portal */}
+      {contextMenuState && createPortal(
+        <MarkdownContextMenu
+          anchorRect={contextMenuState.anchorRect}
+          onClose={() => setContextMenuState(null)}
+          mode={contextMenuState.mode}
+          text={content}
+          selectionStart={contextMenuState.selection?.start ?? 0}
+          selectionEnd={contextMenuState.selection?.end ?? 0}
+          selectedText={contextMenuState.selection ? content.substring(contextMenuState.selection.start, contextMenuState.selection.end) : ''}
+          hasSelection={contextMenuState.selection ? contextMenuState.selection.start !== contextMenuState.selection.end : false}
+          onApplyOperation={handleApplyOperation}
+          previewContent={content}
+        />,
+        document.body
       )}
     </div>
   )

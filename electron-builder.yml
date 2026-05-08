@@ -1,5 +1,5 @@
-appId: com.funpets.app
-productName: FunPets
+appId: com.funbuddy.app
+productName: FunBuddy
 directories:
   buildResources: resources
   output: dist
@@ -17,4 +17,4 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  shortcutName: FunPets
+  shortcutName: FunBuddy

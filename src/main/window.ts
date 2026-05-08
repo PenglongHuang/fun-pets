@@ -112,7 +112,6 @@ export function expandToPanelMode(
   targetY = Math.max(display.bounds.y, Math.min(targetY, display.bounds.y + workAreaSize.height - height))
 
   mainWindow.setResizable(true)
-  mainWindow.setMinimumSize(480, 500)
 
   mainWindow.setBounds({
     x: targetX,
@@ -120,6 +119,8 @@ export function expandToPanelMode(
     width,
     height,
   })
+
+  mainWindow.setMinimumSize(480, 500)
 
   mainWindow.setAlwaysOnTop(false)
   mainWindow.setSkipTaskbar(false)
@@ -271,4 +272,12 @@ export function movePetDrag(cursorX: number, cursorY: number): void {
     Math.round(dragState.winStartX + cursorX - dragState.cursorStartX),
     Math.round(dragState.winStartY + cursorY - dragState.cursorStartY)
   )
+}
+
+/** Toggle always-on-top for panel mode — returns new state */
+export function toggleAlwaysOnTop(): boolean {
+  if (!mainWindow || mainWindow.isDestroyed()) return false
+  const isCurrentlyOnTop = mainWindow.isAlwaysOnTop()
+  mainWindow.setAlwaysOnTop(!isCurrentlyOnTop, 'floating')
+  return !isCurrentlyOnTop
 }

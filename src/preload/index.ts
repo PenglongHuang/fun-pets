@@ -41,6 +41,8 @@ const api = {
     ipcRenderer.invoke(IPC.WINDOW_INVALIDATE),
   windowMinimize: () =>
     ipcRenderer.invoke(IPC.WINDOW_MINIMIZE),
+  windowToggleAlwaysOnTop: () =>
+    ipcRenderer.invoke(IPC.WINDOW_TOGGLE_ALWAYS_ON_TOP) as Promise<boolean>,
 
   // Notification
   notificationShow: (title: string, body: string) => ipcRenderer.invoke(IPC.NOTIFICATION_SHOW, title, body),
@@ -66,6 +68,8 @@ const api = {
     ipcRenderer.on(IPC.HOTKEY_QUICK_CAPTURE, handler)
     return () => ipcRenderer.removeListener(IPC.HOTKEY_QUICK_CAPTURE, handler)
   },
+  hotkeyRegister: (accelerator: string) =>
+    ipcRenderer.invoke(IPC.HOTKEY_REGISTER, accelerator),
 
   // Pet cursor tracking
   startPetTracking: () => ipcRenderer.invoke(IPC.PET_START_TRACKING),

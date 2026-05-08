@@ -1,4 +1,4 @@
-<h1 align="center">FunPets - AI Desktop Pet Assistant</h1>
+<h1 align="center">FunBuddy - AI Desktop Pet Assistant</h1>
 
 <p align="center">
   <strong>A cute desktop AI pet — your intelligent work companion</strong>
@@ -75,14 +75,14 @@
 
 ## AI Roadmap
 
-> FunPets aims to become your AI work hub. The pet is not just a companion — it's the bridge between you and AI capabilities.
+> FunBuddy aims to become your AI work hub. The pet is not just a companion — it's the bridge between you and AI capabilities.
 
 ### 1. Coding Agent Control Hub
 
-Turn FunPets into a unified interface for controlling Coding Agents:
+Turn FunBuddy into a unified interface for controlling Coding Agents:
 
 - Integrate [Claude Code](https://claude.ai/code), [OpenAI Codex](https://github.com/openai/codex), and other popular Coding Agents
-- Visual task orchestration: create, dispatch, and track Agent tasks from the FunPets panel
+- Visual task orchestration: create, dispatch, and track Agent tasks from the FunBuddy panel
 - Multi-agent coordination: dispatch multiple Agents in parallel for different subtasks
 - Real-time progress dashboard: code change previews, execution logs, result review
 
@@ -145,8 +145,8 @@ Let the pet become your messaging hub:
 
 ```bash
 # Clone the repository
-git clone https://github.com/PenglongHuang/fun-pets.git
-cd fun-pets
+git clone https://github.com/PenglongHuang/fun-buddy.git
+cd fun-buddy
 
 # Install dependencies
 npm install
@@ -167,7 +167,7 @@ npm run build:win
 
 ### Architecture
 
-FunPets uses Electron's three-layer architecture:
+FunBuddy uses Electron's three-layer architecture:
 
 ```
 System Layer (Electron Main Process)
@@ -209,7 +209,7 @@ Data Layer (Zustand + Storage)
 ## Project Structure
 
 ```
-fun-pets/
+fun-buddy/
 ├── resources/                  # App resources
 │   └── icon.svg               # App icon
 ├── src/
