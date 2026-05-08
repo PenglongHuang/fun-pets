@@ -12,6 +12,8 @@ import { motion } from 'motion/react'
 import { useToast } from '@/components/common/Toast'
 import { extractH1Title } from '@/utils/markdown'
 import { extractHeadings } from '@/lib/toc-extract'
+import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
+import useTextSelection from '@/hooks/useTextSelection'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -67,6 +69,13 @@ export default function NoteEditor() {
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  const [contextMenuState, setContextMenuState] = useState<{
+    anchorRect: DOMRect
+    mode: 'edit' | 'live' | 'preview'
+  } | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const selection = useTextSelection(textareaRef)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -134,6 +143,14 @@ export default function NoteEditor() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  // Capture textarea ref from editorRef for useTextSelection
+  useEffect(() => {
+    if (editorRef.current) {
+      const ta = editorRef.current.querySelector('textarea') as HTMLTextAreaElement | null
+      if (ta) textareaRef.current = ta
+    }
+  })
 
   if (!note) return null
 
@@ -212,6 +229,34 @@ export default function NoteEditor() {
       }
     }
   }
+
+  const handleEditorContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: e.currentTarget.getBoundingClientRect(),
+      mode,
+    })
+  }, [mode])
+
+  const handleApplyOperation = useCallback((newText: string, newStart: number, newEnd: number) => {
+    handleChange(newText)
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current
+      if (ta) {
+        ta.focus()
+        ta.setSelectionRange(newStart, newEnd)
+      }
+    })
+    setContextMenuState(null)
+  }, [handleChange])
+
+  const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: (e.target as HTMLElement).getBoundingClientRect(),
+      mode: 'preview',
+    })
+  }, [])
 
   return (
     <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
@@ -309,11 +354,29 @@ export default function NoteEditor() {
       {/* Editor / Preview */}
       <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: mode === 'preview' ? 'auto' : 'hidden' }}>
         {mode === 'live' ? (
-          <SplitPaneLiveEditor key={activeNoteId} value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} />
+          <SplitPaneLiveEditor
+            key={activeNoteId}
+            value={content}
+            onChange={handleChange}
+            onCursorLineChange={setCurrentLineIndex}
+            onContextMenu={handleEditorContextMenu}
+          />
         ) : mode === 'edit' ? (
-          <MarkdownEditor value={content} onChange={handleChange} onCursorLineChange={setCurrentLineIndex} placeholder="# 标题\n\n内容..." />
+          <MarkdownEditor
+            value={content}
+            onChange={handleChange}
+            onCursorLineChange={setCurrentLineIndex}
+            placeholder="# 标题\n\n内容..."
+            onContextMenu={handleEditorContextMenu}
+          />
         ) : (
-          <MarkdownPreview content={content} />
+          <div
+            className="flex-1 min-h-0 overflow-auto"
+            style={{ userSelect: 'text' }}
+            onContextMenu={handlePreviewContextMenu}
+          >
+            <MarkdownPreview content={content} />
+          </div>
         )}
       </div>
 
@@ -328,6 +391,23 @@ export default function NoteEditor() {
           open={tocVisible}
         />,
         rootRef.current
+      )}
+
+      {/* Context Menu Portal */}
+      {contextMenuState && createPortal(
+        <MarkdownContextMenu
+          anchorRect={contextMenuState.anchorRect}
+          onClose={() => setContextMenuState(null)}
+          mode={contextMenuState.mode}
+          text={content}
+          selectionStart={selection.selection.start}
+          selectionEnd={selection.selection.end}
+          selectedText={selection.selectedText}
+          hasSelection={selection.hasSelection}
+          onApplyOperation={handleApplyOperation}
+          previewContent={content}
+        />,
+        document.body
       )}
     </div>
   )

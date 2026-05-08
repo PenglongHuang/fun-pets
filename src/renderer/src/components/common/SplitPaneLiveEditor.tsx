@@ -7,9 +7,10 @@ interface SplitPaneLiveEditorProps {
   onChange: (value: string) => void
   onCursorLineChange?: (lineIndex: number | null) => void
   placeholder?: string
+  onContextMenu?: (e: React.MouseEvent<HTMLTextAreaElement>) => void
 }
 
-export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder }: SplitPaneLiveEditorProps) {
+export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder, onContextMenu }: SplitPaneLiveEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previewPaneRef = useRef<HTMLDivElement>(null)
   const syncingRef = useRef(false)
@@ -46,6 +47,7 @@ export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChang
           onChange={onChange}
           onCursorLineChange={onCursorLineChange}
           placeholder={placeholder}
+          onContextMenu={onContextMenu}
         />
       </div>
 

@@ -3,9 +3,10 @@ interface MarkdownEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   onCursorLineChange?: (lineIndex: number | null) => void
+  onContextMenu?: (e: React.MouseEvent<HTMLTextAreaElement>) => void
 }
 
-export default function MarkdownEditor({ value, onChange, placeholder, onCursorLineChange }: MarkdownEditorProps) {
+export default function MarkdownEditor({ value, onChange, placeholder, onCursorLineChange, onContextMenu }: MarkdownEditorProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Tab') return
     e.preventDefault()
@@ -32,6 +33,7 @@ export default function MarkdownEditor({ value, onChange, placeholder, onCursorL
   return (
     <textarea
       className="w-full h-full bg-transparent text-xs text-white/80 font-mono resize-none outline-none placeholder:text-white/20"
+      style={{ userSelect: 'text' }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
@@ -43,6 +45,7 @@ export default function MarkdownEditor({ value, onChange, placeholder, onCursorL
           onCursorLineChange(lineIndex)
         }
       }}
+      onContextMenu={(e) => onContextMenu?.(e)}
       placeholder={placeholder}
       spellCheck={false}
     />
