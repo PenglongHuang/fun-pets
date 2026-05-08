@@ -14,7 +14,9 @@ function wrapWith(text: string, start: number, end: number, marker: string): Ope
     start >= marker.length &&
     end <= text.length - marker.length &&
     text.substring(start - marker.length, start) === marker &&
-    text.substring(end, end + marker.length) === marker
+    text.substring(end, end + marker.length) === marker &&
+    (start < marker.length || text[start - marker.length - 1] !== marker[0]) &&
+    (end + marker.length >= text.length || text[end + marker.length] !== marker[0])
   ) {
     return {
       text: text.substring(0, start - marker.length) + selected + text.substring(end + marker.length),
