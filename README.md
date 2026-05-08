@@ -1,4 +1,4 @@
-<h1 align="center">FunPets AI 桌面萌宠助手</h1>
+<h1 align="center">FunBuddy AI 桌面萌宠助手</h1>
 
 <p align="center">
   <strong>一只住在桌面上的 AI 萌宠 — 你的智能办公伙伴</strong>
@@ -72,14 +72,14 @@
 
 ## AI 路线图
 
-> FunPets 的终极目标是成为你的 AI 办公中枢 — 萌宠不仅是陪伴，更是你和 AI 能力之间的桥梁。
+> FunBuddy 的终极目标是成为你的 AI 办公中枢 — 萌宠不仅是陪伴，更是你和 AI 能力之间的桥梁。
 
 ### 1. Coding Agent 控制中枢
 
-将 FunPets 打造成统一操控 Coding Agent 的桌面入口：
+将 FunBuddy 打造成统一操控 Coding Agent 的桌面入口：
 
 - 集成 [Claude Code](https://claude.ai/code)、[OpenAI Codex](https://github.com/openai/codex) 等主流 Coding Agent
-- 可视化任务编排：在 FunPets 面板中创建、分发、追踪 Agent 任务
+- 可视化任务编排：在 FunBuddy 面板中创建、分发、追踪 Agent 任务
 - 多 Agent 协同：并行调度多个 Agent 处理不同子任务
 - 实时进度面板：代码变更预览、执行日志、结果审查
 
@@ -142,8 +142,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/PenglongHuang/fun-pets.git
-cd fun-pets
+git clone https://github.com/PenglongHuang/fun-buddy.git
+cd fun-buddy
 
 # 安装依赖
 npm install
@@ -164,7 +164,7 @@ npm run build:win
 
 ### 项目架构
 
-FunPets 采用 Electron 三层架构：
+FunBuddy 采用 Electron 三层架构：
 
 ```
 系统层 (Electron Main Process)
@@ -206,7 +206,7 @@ UI 层 (React Renderer)
 ## 项目结构
 
 ```
-fun-pets/
+fun-buddy/
 ├── resources/                  # 应用资源
 │   └── icon.svg               # 应用图标
 ├── src/

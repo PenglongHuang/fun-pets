@@ -13,7 +13,7 @@ export function registerIpcHandlers(): void {
   function getStorageDir(): string {
     const configured = store.get('settings.storageDir') as string
     if (configured) return configured
-    return join(app.getPath('userData'), 'funpets-workspace')
+    return join(app.getPath('userData'), 'funbuddy-workspace')
   }
 
   // Store

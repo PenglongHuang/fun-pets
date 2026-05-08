@@ -306,7 +306,7 @@ export default function SettingsPanel() {
     try {
       const filePath = await dialog.showSaveDialog({
         title: '导出 JSON',
-        defaultPath: 'funpets-export.json',
+        defaultPath: 'funbuddy-export.json',
         filters: [{ name: 'JSON', extensions: ['json'] }],
       })
       if (!filePath) return

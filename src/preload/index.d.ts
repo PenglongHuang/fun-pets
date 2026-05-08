@@ -1,6 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
-export interface FunPetsAPI {
+export interface FunBuddyAPI {
   storeGet: (key: string) => Promise<unknown>
   storeSet: (key: string, value: unknown) => Promise<void>
   storeDelete: (key: string) => Promise<void>
@@ -43,7 +43,7 @@ export interface FunPetsAPI {
 
 declare global {
   interface Window {
-    api: FunPetsAPI
+    api: FunBuddyAPI
     electronAPI: ElectronAPI
   }
 }

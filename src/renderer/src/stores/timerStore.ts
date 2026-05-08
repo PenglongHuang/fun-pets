@@ -134,7 +134,7 @@ export const useTimerStore = create<TimerStore>()(
 
       usePetStore.getState().setState('doubleWink')
       fireConfetti()
-      notify.show('FunPets', phase === 'focus' ? '专注完成！休息一下吧' : '休息结束，继续加油！')
+      notify.show('FunBuddy', phase === 'focus' ? '专注完成！休息一下吧' : '休息结束，继续加油！')
 
       const newRound = phase === 'focus' ? round + 1 : round
       const nextPhase: TimerPhase = phase === 'focus'

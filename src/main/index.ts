@@ -20,7 +20,7 @@ if (!gotTheLock) {
   })
 
   app.whenReady().then(() => {
-    app.setAppUserModelId('com.funpets.app')
+    app.setAppUserModelId('com.funbuddy.app')
     registerIpcHandlers()
     createMainWindow()
     createTray()

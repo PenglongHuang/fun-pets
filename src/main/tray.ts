@@ -91,7 +91,7 @@ function loadIcon(): Electron.NativeImage {
 export function createTray(): void {
   const icon = loadIcon()
   tray = new Tray(icon)
-  tray.setToolTip('FunPets')
+  tray.setToolTip('FunBuddy')
 
   const contextMenu = Menu.buildFromTemplate([
     {
