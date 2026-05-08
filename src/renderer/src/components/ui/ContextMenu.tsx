@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, forwardRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -49,7 +49,7 @@ function itemStyle(color?: string): React.CSSProperties {
   }
 }
 
-const SubmenuPanel = React.forwardRef<HTMLDivElement, {
+const SubmenuPanel = forwardRef<HTMLDivElement, {
   items: ContextMenuItem[]
   parentRect: DOMRect
   onClose: () => void
