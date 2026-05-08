@@ -1,301 +1,90 @@
-<h1 align="center">FunBuddy - AI Desktop Pet Assistant</h1>
+<h1 align="center">FunBuddy</h1>
 
 <p align="center">
-  <strong>A cute desktop AI pet — your intelligent work companion</strong>
+  <strong>A tiny star lives on your desktop — and it actually helps you work</strong>
 </p>
 
 <p align="center">
-  Not just a pet that keeps you focused and organized.<br>
-  It will soon control your Coding Agents, build a personal knowledge base,<br>
-  automate browser and desktop tasks, and integrate with your messaging apps.
+  It blinks quietly while you focus, throws confetti when you hit your goals.<br>
+  Pomodoro timer, planner, Markdown notes — everything you need in one adorable panel.
 </p>
 
 <p align="center">
-  <a href="#current-features-v01x">Features</a> &bull;
+  <a href="#features">Features</a> &bull;
   <a href="#ai-roadmap">AI Roadmap</a> &bull;
   <a href="#tech-stack">Tech Stack</a> &bull;
-  <a href="#getting-started">Getting Started</a> &bull;
-  <a href="#development">Development</a> &bull;
+  <a href="#getting-started">Install</a> &bull;
   <a href="#license">License</a>
 </p>
 
 <p align="center">
-  <a href="README.md">中文文档</a>
+  <a href="README.md">中文</a>
 </p>
 
 ---
 
-## Current Features (v0.1.x)
+## Features
 
-### Desktop Pet Companion
+### A Desktop Pet That's Actually Alive
 
-- Adorable star-shaped pet with multiple animation states (happy, focus, sleepy)
-- Hover interaction animations (spin, bounce, thought bubble, heart)
-- Auto-blink cycle, click-triggered state changes
-- Draggable positioning, always on desktop right edge
+Not a static icon — a star with moods. Hover and it spins, bounces, or bursts into hearts. When you're deep in focus, it winks to cheer you on. When you finish a session, it throws a full-screen confetti party. It can shrink into a tiny companion in the corner, or expand into a full-featured panel with one click.
 
-### Pomodoro Timer
+### Pomodoro Timer With Ritual
 
-- SVG circular progress ring with phase display
-- Focus / Short Break / Long Break phases with auto-transition
-- Pet celebration animation + confetti on completion
-- Today's stats: completed rounds & total focus minutes
-- Background execution with cross-restart state recovery
+Start a session, pick a plan, and dive in. Three phases auto-cycle (focus → short break → long break → …), and when it's time to rest, your pet nudges you. Every session is logged — look back at how long you focused today, how many minutes per plan, all tracked automatically.
 
-### Planner & Calendar
+### Planner: Capture Thoughts, See Them on the Calendar
 
-- Markdown plan documents with date range support
-- Tab-based plan list (daily/weekly/monthly/all) with batch management
-- List view with plan card previews and quick editing
-- Calendar view with colored dots for daily/weekly/monthly coverage
-- Auto color classification (blue=daily, purple=weekly, amber=monthly)
-- Date picker for creating plans with specific date ranges
+Write plans in Markdown, set a date range, and FunBuddy auto-detects whether it's daily, weekly, or monthly — then marks it with color-coded dots on the calendar. Card view for scanning, compact view for density. Tags, search, sorting — find any plan in under 3 seconds.
 
-### Markdown Notes
+### Markdown Notes: Preview While You Write
 
-- Note list + editor dual-pane layout
-- Toggle between edit mode and live preview
-- Syntax-highlighted code blocks (highlight.js with Dracula theme)
-- Auto-assigned color tags for visual distinction
+Write on the left, see it rendered on the right — instant feedback. Toggle the floating table of contents and jump to any heading in long docs. Bold, italic, links — all have keyboard shortcuts. Right-click to format text. Writing notes feels as natural as using Word. Code blocks get beautiful syntax highlighting, so even technical notes look great.
 
-### Quick Capture
+### Quick Capture: Ideas Don't Wait
 
-- Global hotkey `Ctrl+Shift+N` opens a floating input window
-- Capture fleeting thoughts as notes without breaking your workflow
-
-### Settings Panel
-
-- Customizable storage directory with history picker
-- Adjustable pomodoro parameters (duration, breaks, rounds)
-- Auto-start on boot / minimize-to-tray on close
-- JSON data export with native save dialog
-- Clear data with confirmation
+`Ctrl+Shift+N` — anytime, any app. A floating window pops up, you type, hit Enter, and it's saved as a note with a "Quick Note" tag. Zero workflow interruption. From spark to saved note in 2 seconds.
 
 ---
 
 ## AI Roadmap
 
-> FunBuddy aims to become your AI work hub. The pet is not just a companion — it's the bridge between you and AI capabilities.
+> The pet isn't just a companion — it's becoming your AI work hub.
 
-### 1. Coding Agent Control Hub
-
-Turn FunBuddy into a unified interface for controlling Coding Agents:
-
-- Integrate [Claude Code](https://claude.ai/code), [OpenAI Codex](https://github.com/openai/codex), and other popular Coding Agents
-- Visual task orchestration: create, dispatch, and track Agent tasks from the FunBuddy panel
-- Multi-agent coordination: dispatch multiple Agents in parallel for different subtasks
-- Real-time progress dashboard: code change previews, execution logs, result review
-
-### 2. AI Knowledge Base & Memory
-
-Give the pet long-term memory and make it your "second brain":
-
-- Local-first vector knowledge base, auto-indexing project code, notes, and plans
-- Cross-session memory: remembers your preferences, work habits, and project context
-- Semantic search: query historical notes and code snippets using natural language
-- Smart associations: automatically discover and recommend hidden connections between notes
-
-### 3. Automated Browser & Desktop Operations
-
-Drive automation through visual understanding — let the pet handle repetitive tasks:
-
-- Browser automation via [Midscene.js](https://midscenejs.com/): form filling, data scraping, page operations
-- Desktop-level automation: launch apps, manage files, cross-window collaboration
-- Natural language driven: describe tasks in plain language, the pet plans and executes automatically
-- Operation recording & replay: record a workflow once, replay it with one click
-
-### 4. Instant Messaging Integration
-
-Let the pet become your messaging hub:
-
-- Connect to WeChat, DingTalk, Feishu, Telegram, Slack, and other major IM platforms
-- AI-powered message summaries: auto-summarize unread messages and extract key information
-- Context-aware reply suggestions: recommend replies based on current tasks and knowledge base
-- Message automation: scheduled reminders, conditional triggers, group message filtering and forwarding
+- **Coding Agent Control Hub** — Orchestrate Claude Code, OpenAI Codex from the panel with visual multi-agent task tracking
+- **AI Knowledge Base & Memory** — Give the pet long-term memory so you can find anything you've ever written using plain language
+- **Browser & Desktop Automation** — Describe tasks in natural language, the pet operates browsers and apps for you
+- **IM Integration** — Connect WeChat, Feishu, Slack with AI summaries and smart reply suggestions
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|------|------------|---------|
-| Desktop Framework | [Electron](https://www.electronjs.org/) 36 | Transparent windows, tray, native APIs |
-| Frontend | [React](https://react.dev/) 19 + TypeScript | Component-based UI |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) 4 | Glassmorphism design system |
-| Icons | [Lucide React](https://lucide.dev/guides/languages/introduction-to-lucide-react) | Unified icon set throughout |
-| Animation | [Motion](https://motion.dev/) (Framer Motion) | Panel morphing, spring transitions |
-| State Management | [Zustand](https://zustand.docs.pmnd.rs/) + [Immer](https://immerjs.github.io/immer/) | Lightweight reactive state |
-| Persistence (JSON) | [electron-store](https://github.com/sindresorhus/electron-store) | Settings, app state, timer |
-| Persistence (files) | Node.js fs | Plans and notes as .md files |
-| Markdown Rendering | [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | Note/plan preview with syntax highlighting |
-| Build Tool | [electron-vite](https://electron-vite.org/) | Three-process build with HMR |
-| Packaging | [electron-builder](https://www.electron.build/) | NSIS Windows installer |
+| Technology | Purpose |
+|------------|---------|
+| [Electron](https://www.electronjs.org/) 42 | Transparent windows, tray, global hotkeys |
+| [React](https://react.dev/) 19 + TypeScript | Component-based UI |
+| [Tailwind CSS](https://tailwindcss.com/) 4 | Glassmorphism design system |
+| [Motion](https://motion.dev/) | Smooth animations & panel morphing |
+| [Zustand](https://zustand.docs.pmnd.rs/) + Immer | Reactive state management |
+| [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | Markdown rendering & code highlighting |
+| [electron-vite](https://electron-vite.org/) | Build & HMR |
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js >= 18
-- npm >= 9
-- Windows 10/11 (Windows-only for now)
-
-### Installation
-
 ```bash
-# Clone the repository
 git clone https://github.com/PenglongHuang/fun-buddy.git
 cd fun-buddy
-
-# Install dependencies
 npm install
-
-# Start development mode
 npm run dev
-
-# Build for production
-npm run build
-
-# Package Windows installer
-npm run build:win
 ```
 
----
-
-## Development
-
-### Architecture
-
-FunBuddy uses Electron's three-layer architecture:
-
-```
-System Layer (Electron Main Process)
-  ├── Window management (transparent, frameless, always-on-top)
-  ├── System tray + global hotkeys
-  ├── IPC handler registration
-  └── File I/O (plans/*.md, notes/*.md)
-       │
-IPC Bridge (contextBridge)
-       │
-UI Layer (React Renderer)
-  ├── Sidebar container (pet + icon navigation)
-  ├── Feature panels (planner, timer, notes, settings)
-  └── Shared components (GlassPanel, animations, confetti)
-       │
-Data Layer (Zustand + Storage)
-  ├── electron-store JSON (settings, app state, timer)
-  └── File system (user's plans/, notes/)
-```
-
-### Available Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server with HMR |
-| `npm run build` | Build production version to `out/` |
-| `npm run preview` | Preview production build |
-| `npm run build:win` | Build + package Windows installer |
-
-### Design Language
-
-- Inspired by Apple HIG (Human Interface Guidelines)
-- Glassmorphism theme with vibrancy effects
-- Dark mode default color palette
-- Chinese language UI (primary locale)
-
----
-
-## Project Structure
-
-```
-fun-buddy/
-├── resources/                  # App resources
-│   └── icon.svg               # App icon
-├── src/
-│   ├── main/                  # Electron main process
-│   │   ├── index.ts           # App lifecycle, single instance lock
-│   │   ├── window.ts          # Transparent window management
-│   │   ├── tray.ts            # System tray
-│   │   ├── ipc-handlers.ts    # IPC handler registration
-│   │   ├── store.ts           # electron-store initialization
-│   │   └── hotkey.ts          # Global hotkeys
-│   ├── preload/               # Preload scripts
-│   │   ├── index.ts           # contextBridge API bridge
-│   │   └── index.d.ts         # Type declarations
-│   ├── renderer/              # React renderer process
-│   │   ├── index.html
-│   │   └── src/
-│   │       ├── App.tsx        # Root component (includes quick capture)
-│   │       ├── main.tsx       # Entry point
-│   │       ├── styles/global.css  # Design system + animations
-│   │       ├── components/    # UI components
-│   │       │   ├── pet/       # Pet components
-│   │       │   ├── planner/   # Planner panel
-│   │       │   ├── timer/     # Timer panel
-│   │       │   ├── notes/     # Notes panel
-│   │       │   ├── settings/  # Settings panel
-│   │       │   ├── sidebar/   # Sidebar navigation
-│   │       │   └── common/    # Shared components
-│   │       ├── stores/        # Zustand state management
-│   │       ├── hooks/         # Custom hooks
-│   │       ├── lib/           # Utility libraries
-│   │       └── types/         # TypeScript type definitions
-│   └── shared/                # Shared between processes
-│       ├── ipc-channels.ts    # IPC channel constants
-│       └── store-schema.ts    # Data model definitions
-├── electron.vite.config.ts    # electron-vite configuration
-├── electron-builder.yml       # Packaging configuration
-├── package.json
-├── tsconfig.json              # TypeScript project references
-├── tsconfig.node.json         # Main/preload TS config
-├── tsconfig.web.json          # Renderer TS config
-└── .npmrc                     # npm mirror config
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
-
-### Commit Message Convention
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-| Type | Description |
-|------|-------------|
-| `feat:` | New feature |
-| `fix:` | Bug fix |
-| `docs:` | Documentation update |
-| `style:` | Code formatting |
-| `refactor:` | Code refactoring |
-| `chore:` | Build/tooling changes |
+Requires Node.js >= 18. Windows 10/11 only for now.
 
 ---
 
 ## License
 
-This project is licensed under the [Apache License 2.0](LICENSE).
-
-```
-Copyright 2026 Penglong Huang
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+[Apache License 2.0](LICENSE) &copy; Penglong Huang
