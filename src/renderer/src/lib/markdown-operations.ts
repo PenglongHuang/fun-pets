@@ -189,6 +189,18 @@ export function createInsertImageWithPath(relativePath: string, altText: string)
   }
 }
 
+export function createInsertLinkRef(id: string, title: string): MarkdownOperation {
+  return (text, start, _end): OperationResult => {
+    const inserted = `[[${id}|${title}]]`
+    const newPos = start + inserted.length
+    return {
+      text: text.substring(0, start) + inserted + text.substring(start),
+      start: newPos,
+      end: newPos,
+    }
+  }
+}
+
 export async function copyToClipboard(text: string): Promise<void> {
   await navigator.clipboard.writeText(text)
 }
