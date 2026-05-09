@@ -12,9 +12,11 @@ interface SplitPaneLiveEditorProps {
   mdFilePath?: string
   onInsertImageFromPicker?: () => void
   showToast?: (msg: string) => void
+  onTriggerLinkPopup?: (triggerStart: number) => void
+  onLinkClick?: (id: string, type: string) => void
 }
 
-export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder, onContextMenu, onPreviewContextMenu, mdFilePath, onInsertImageFromPicker, showToast }: SplitPaneLiveEditorProps) {
+export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChange, placeholder, onContextMenu, onPreviewContextMenu, mdFilePath, onInsertImageFromPicker, showToast, onTriggerLinkPopup, onLinkClick }: SplitPaneLiveEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previewPaneRef = useRef<HTMLDivElement>(null)
   const syncingRef = useRef(false)
@@ -55,6 +57,7 @@ export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChang
           mdFilePath={mdFilePath}
           onInsertImageFromPicker={onInsertImageFromPicker}
           showToast={showToast}
+          onTriggerLinkPopup={onTriggerLinkPopup}
         />
       </div>
 
@@ -63,7 +66,7 @@ export default function SplitPaneLiveEditor({ value, onChange, onCursorLineChang
 
       {/* Preview pane */}
       <div ref={previewPaneRef} className="live-preview-pane" style={{ flex: 1, overflow: 'auto', minWidth: 0, minHeight: 0, padding: '0 8px', userSelect: 'text' }} onContextMenu={(e) => onPreviewContextMenu?.(e)}>
-        <MarkdownPreview content={value} mdFilePath={mdFilePath} />
+        <MarkdownPreview content={value} mdFilePath={mdFilePath} onLinkClick={onLinkClick} />
       </div>
     </div>
   )
