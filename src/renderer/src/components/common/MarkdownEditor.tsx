@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import {
   wrapBold, wrapItalic, wrapStrikethrough, wrapHighlight, wrapInlineCode,
   toggleHeading, toggleBlockquote, toggleUnorderedList, toggleOrderedList,
@@ -40,9 +41,10 @@ interface MarkdownEditorProps {
   mdFilePath?: string
   onInsertImageFromPicker?: () => void
   showToast?: (msg: string) => void
+  onTriggerLinkPopup?: (triggerStart: number) => void
 }
 
-export default function MarkdownEditor({ value, onChange, placeholder, onCursorLineChange, onContextMenu, mdFilePath, onInsertImageFromPicker, showToast }: MarkdownEditorProps) {
+export default function MarkdownEditor({ value, onChange, placeholder, onCursorLineChange, onContextMenu, mdFilePath, onInsertImageFromPicker, showToast, onTriggerLinkPopup }: MarkdownEditorProps) {
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!mdFilePath) return
     const ta = e.currentTarget
@@ -145,12 +147,33 @@ export default function MarkdownEditor({ value, onChange, placeholder, onCursorL
     }
   }
 
+  const handleTextChanged = useCallback((newValue: string) => {
+    const ta = document.activeElement as HTMLTextAreaElement | null
+    if (!ta) { onChange(newValue); return }
+
+    const cursorPos = ta.selectionStart
+    if (cursorPos < 1) { onChange(newValue); return }
+
+    const charBefore = newValue[cursorPos - 1]
+    const charBefore2 = cursorPos >= 2 ? newValue[cursorPos - 2] : ''
+
+    if (charBefore === '@' || (charBefore === '[' && charBefore2 === '[')) {
+      const triggerLen = charBefore === '@' ? 1 : 2
+      const beforeTrigger = newValue.substring(0, cursorPos - triggerLen)
+      if (beforeTrigger.length === 0 || /[\s\n]$/.test(beforeTrigger)) {
+        onTriggerLinkPopup?.(cursorPos - triggerLen)
+      }
+    }
+
+    onChange(newValue)
+  }, [onChange, onTriggerLinkPopup])
+
   return (
     <textarea
       className="w-full h-full bg-transparent text-xs text-white/80 font-mono resize-none outline-none placeholder:text-white/20"
       style={{ userSelect: 'text' }}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => handleTextChanged(e.target.value)}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       onDrop={handleDrop}
