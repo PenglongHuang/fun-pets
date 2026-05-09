@@ -32,7 +32,7 @@ Three ways to trigger the link insertion flow:
 
 1. **Type `@`** — when cursor is preceded by whitespace or line start, a search popup appears below cursor
 2. **Type `[[`** — same behavior as `@`
-3. **Context menu / `Ctrl+Shift+P`** — opens search popup at cursor position
+3. **Context menu / `Ctrl+Shift+L`** — opens search popup at cursor position
 
 **Trigger guard:** `@` and `[[` only trigger when preceded by whitespace or line start. Typing `foo@bar` or inline `[text](url)` does not trigger.
 
@@ -105,6 +105,7 @@ Before rendering markdown to HTML, apply link-parser to replace `[[id|标题]]` 
 | `components/common/MarkdownContextMenu.tsx` | Add "Insert link to plan/note" menu item |
 | `lib/markdown-operations.ts` | Add `insertLinkRef` operation (pure function) |
 | `PlanEditor.tsx` / `NoteEditor.tsx` | Pass `onNavigate` callback to connect preview clicks to panel switching |
+| `PanelRouter.tsx` or equivalent layout component | Coordinate cross-panel navigation — when a link target is a different entity type, switch sidebar panel and load target editor |
 
 ### Data Flow
 
