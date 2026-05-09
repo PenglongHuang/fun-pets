@@ -21,11 +21,12 @@ interface MarkdownContextMenuProps {
   onApplyOperation: (newText: string, newStart: number, newEnd: number) => void
   previewContent?: string
   onInsertImage?: () => void
+  onInsertLinkRef?: () => void
 }
 
 export default function MarkdownContextMenu({
   anchorRect, onClose, mode, text, selectionStart, selectionEnd,
-  selectedText, hasSelection, onApplyOperation, previewContent, onInsertImage,
+  selectedText, hasSelection, onApplyOperation, previewContent, onInsertImage, onInsertLinkRef,
 }: MarkdownContextMenuProps) {
 
   const applyOp = useCallback((op: typeof wrapBold) => {
@@ -117,6 +118,7 @@ export default function MarkdownContextMenu({
         { label: '表格', icon: <Table size={13} />, onClick: () => applyOp(insertTable) },
         { label: '分割线', icon: <Minus size={13} />, onClick: () => applyOp(insertHorizontalRule) },
         { label: '图片', icon: <Image size={13} />, onClick: () => onInsertImage ? onInsertImage() : applyOp(insertImage) },
+        { label: '链接引用', icon: <LinkIcon size={13} />, shortcut: '⌘⇧R', onClick: () => { onInsertLinkRef?.(); onClose() } },
         { label: '代码块', icon: <Code size={13} />, shortcut: '⌘⇧C', onClick: () => applyOp(insertCodeBlock) },
       ],
     })
