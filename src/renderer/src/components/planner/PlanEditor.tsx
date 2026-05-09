@@ -11,9 +11,31 @@ import TagInput from '@/components/common/TagInput'
 import { getAllTags } from '@/lib/tag-utils'
 import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
 import useTextSelection from '@/hooks/useTextSelection'
-import { applyOperationToTextarea } from '@/lib/markdown-operations'
+import { applyOperationToTextarea, createInsertImageWithPath } from '@/lib/markdown-operations'
+import { imageApi, fs } from '@/lib/ipc'
 
 const AUTO_SAVE_DELAY = 3000
+
+const IMAGE_REF_REGEX = /!\[[^\]]*\]\(\.?\/?assets\/([^)]+)\)/g
+
+async function cleanupOrphanImages(mdFilePath: string, content: string): Promise<void> {
+  const refs = new Set<string>()
+  let match
+  while ((match = IMAGE_REF_REGEX.exec(content)) !== null) {
+    if (match[1]) refs.add(match[1])
+  }
+  if (refs.size === 0) return
+  try {
+    const dir = mdFilePath.replace(/\.md$/, '')
+    const assetsPath = `${dir}/assets`
+    const files = await fs.readDir(assetsPath)
+    for (const file of files) {
+      if (!refs.has(file)) {
+        await imageApi.deleteImage(mdFilePath, file)
+      }
+    }
+  } catch { /* no assets dir */ }
+}
 
 interface PlanEditorProps {
   planId: string
@@ -36,6 +58,7 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
+  const prevImageRefsRef = useRef<Set<string>>(new Set())
   const allTags = useMemo(() => getAllTags(plans), [plans])
 
   const [contextMenuState, setContextMenuState] = useState<{
@@ -65,6 +88,20 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
     if (h1 && h1 !== plan.title) {
       await updatePlan(plan.id, { title: h1 })
     }
+
+    // Orphan image cleanup — only when image refs changed
+    const currentRefs = new Set<string>()
+    let match
+    while ((match = IMAGE_REF_REGEX.exec(contentRef.current)) !== null) {
+      if (match[1]) currentRefs.add(match[1])
+    }
+    if (currentRefs.size > 0 || prevImageRefsRef.current.size > 0) {
+      if (currentRefs.size !== prevImageRefsRef.current.size ||
+          [...currentRefs].some(r => !prevImageRefsRef.current.has(r))) {
+        await cleanupOrphanImages(plan.filePath, contentRef.current)
+      }
+    }
+    prevImageRefsRef.current = currentRefs
 
     setDirty(false)
     showToast(isAuto ? '自动保存成功' : '保存成功')
@@ -139,6 +176,19 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
     applyOperationToTextarea(textareaEl, content, newText, cursorStart, cursorEnd)
     setContextMenuState(null)
   }, [content, textareaEl])
+
+  const handleInsertImageFromPicker = useCallback(async () => {
+    if (!plan || !textareaEl) return
+    try {
+      const result = await imageApi.pickAndSave(plan.filePath)
+      if (!result) return
+      const op = createInsertImageWithPath(result.relativePath, result.fileName)
+      const res = op(content, textareaEl.selectionStart, textareaEl.selectionEnd)
+      applyOperationToTextarea(textareaEl, content, res.text, res.start, res.end)
+    } catch {
+      showToast('保存图片失败')
+    }
+  }, [plan, content, textareaEl, showToast])
 
   return (
     <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
@@ -217,6 +267,9 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
             onChange={handleChange}
             placeholder="# 计划内容\n\n- [ ] 待办项 1\n- [ ] 待办项 2"
             onContextMenu={handleEditorContextMenu}
+            mdFilePath={plan.filePath}
+            onInsertImageFromPicker={handleInsertImageFromPicker}
+            showToast={showToast}
           />
         ) : (
           <div
@@ -224,7 +277,7 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
             style={{ userSelect: 'text' }}
             onContextMenu={handlePreviewContextMenu}
           >
-            <MarkdownPreview content={content} />
+            <MarkdownPreview content={content} mdFilePath={plan.filePath} />
           </div>
         )}
       </div>
@@ -242,6 +295,7 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
           hasSelection={contextMenuState.selection ? contextMenuState.selection.start !== contextMenuState.selection.end : false}
           onApplyOperation={handleApplyOperation}
           previewContent={content}
+          onInsertImage={handleInsertImageFromPicker}
         />,
         document.body
       )}
