@@ -14,9 +14,31 @@ import { extractH1Title } from '@/utils/markdown'
 import { extractHeadings } from '@/lib/toc-extract'
 import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
 import useTextSelection from '@/hooks/useTextSelection'
-import { applyOperationToTextarea } from '@/lib/markdown-operations'
+import { applyOperationToTextarea, createInsertImageWithPath } from '@/lib/markdown-operations'
+import { imageApi, fs } from '@/lib/ipc'
 
 const AUTO_SAVE_DELAY = 3000
+
+const IMAGE_REF_REGEX = /!\[[^\]]*\]\(\.?\/?assets\/([^)]+)\)/g
+
+async function cleanupOrphanImages(mdFilePath: string, content: string): Promise<void> {
+  const refs = new Set<string>()
+  let match
+  while ((match = IMAGE_REF_REGEX.exec(content)) !== null) {
+    if (match[1]) refs.add(match[1])
+  }
+  if (refs.size === 0) return
+  try {
+    const dir = mdFilePath.replace(/\.md$/, '')
+    const assetsPath = `${dir}/assets`
+    const files = await fs.readDir(assetsPath)
+    for (const file of files) {
+      if (!refs.has(file)) {
+        await imageApi.deleteImage(mdFilePath, file)
+      }
+    }
+  } catch { /* no assets dir */ }
+}
 
 function findScrollParent(el: HTMLElement): HTMLElement | null {
   let parent = el.parentElement
@@ -67,6 +89,7 @@ export default function NoteEditor() {
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
+  const prevImageRefsRef = useRef<Set<string>>(new Set())
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -98,6 +121,20 @@ export default function NoteEditor() {
     if (h1 && h1 !== note.title) {
       await updateNoteTitle(note.id, h1)
     }
+
+    // Orphan image cleanup — only when image refs changed
+    const currentRefs = new Set<string>()
+    let match
+    while ((match = IMAGE_REF_REGEX.exec(contentRef.current)) !== null) {
+      if (match[1]) currentRefs.add(match[1])
+    }
+    if (currentRefs.size > 0 || prevImageRefsRef.current.size > 0) {
+      if (currentRefs.size !== prevImageRefsRef.current.size ||
+          [...currentRefs].some(r => !prevImageRefsRef.current.has(r))) {
+        await cleanupOrphanImages(note.filePath, contentRef.current)
+      }
+    }
+    prevImageRefsRef.current = currentRefs
 
     setDirty(false)
     showToast(isAuto ? '自动保存成功' : '保存成功')
@@ -248,6 +285,19 @@ export default function NoteEditor() {
     setContextMenuState(null)
   }, [content, textareaEl])
 
+  const handleInsertImageFromPicker = useCallback(async () => {
+    if (!note || !textareaEl) return
+    try {
+      const result = await imageApi.pickAndSave(note.filePath)
+      if (!result) return
+      const op = createInsertImageWithPath(result.relativePath, result.fileName)
+      const res = op(content, textareaEl.selectionStart, textareaEl.selectionEnd)
+      applyOperationToTextarea(textareaEl, content, res.text, res.start, res.end)
+    } catch {
+      showToast('保存图片失败')
+    }
+  }, [note, content, textareaEl, showToast])
+
   const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setContextMenuState({
@@ -369,6 +419,9 @@ export default function NoteEditor() {
             onCursorLineChange={setCurrentLineIndex}
             onContextMenu={handleEditorContextMenu}
             onPreviewContextMenu={handleLivePreviewContextMenu}
+            mdFilePath={note.filePath}
+            onInsertImageFromPicker={handleInsertImageFromPicker}
+            showToast={showToast}
           />
         ) : mode === 'edit' ? (
           <MarkdownEditor
@@ -377,6 +430,9 @@ export default function NoteEditor() {
             onCursorLineChange={setCurrentLineIndex}
             placeholder="# 标题\n\n内容..."
             onContextMenu={handleEditorContextMenu}
+            mdFilePath={note.filePath}
+            onInsertImageFromPicker={handleInsertImageFromPicker}
+            showToast={showToast}
           />
         ) : (
           <div
@@ -384,7 +440,7 @@ export default function NoteEditor() {
             style={{ userSelect: 'text' }}
             onContextMenu={handlePreviewContextMenu}
           >
-            <MarkdownPreview content={content} />
+            <MarkdownPreview content={content} mdFilePath={note.filePath} />
           </div>
         )}
       </div>
@@ -415,6 +471,7 @@ export default function NoteEditor() {
           hasSelection={contextMenuState.selection ? contextMenuState.selection.start !== contextMenuState.selection.end : false}
           onApplyOperation={handleApplyOperation}
           previewContent={content}
+          onInsertImage={handleInsertImageFromPicker}
         />,
         document.body
       )}
