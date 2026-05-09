@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -10,6 +10,8 @@ import bash from 'highlight.js/lib/languages/bash'
 import xml from 'highlight.js/lib/languages/xml'
 import markdown from 'highlight.js/lib/languages/markdown'
 import { imageApi } from '@/lib/ipc'
+import { parseLinks, replaceLinksWithHtml } from '@/lib/link-parser'
+import { resolveLinks } from '@/lib/link-resolver'
 
 hljs.registerLanguage('javascript', javascript)
 hljs.registerLanguage('js', javascript)
@@ -38,9 +40,10 @@ codeRenderer.code = function ({ text, lang }: { text: string; lang?: string }) {
 interface MarkdownPreviewProps {
   content: string
   mdFilePath?: string
+  onLinkClick?: (id: string, type: string) => void
 }
 
-export default function MarkdownPreview({ content, mdFilePath }: MarkdownPreviewProps) {
+export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: MarkdownPreviewProps) {
   const [imageMap, setImageMap] = useState<Record<string, string>>({})
 
   const imageRefs = useMemo(() => {
@@ -54,6 +57,13 @@ export default function MarkdownPreview({ content, mdFilePath }: MarkdownPreview
   }, [content])
 
   const imageRefsKey = imageRefs.join(',')
+
+  const resolvedLinkMap = useMemo(() => {
+    const links = parseLinks(content)
+    if (links.length === 0) return new Map<string, any>()
+    const ids = Array.from(new Set(links.map(l => l.id)))
+    return resolveLinks(ids)
+  }, [content])
 
   useEffect(() => {
     if (!mdFilePath || imageRefs.length === 0) {
@@ -103,15 +113,48 @@ export default function MarkdownPreview({ content, mdFilePath }: MarkdownPreview
     return r
   }, [imageMap])
 
+  const processedContent = useMemo(() => {
+    if (resolvedLinkMap.size === 0) return content
+    return replaceLinksWithHtml(content, resolvedLinkMap)
+  }, [content, resolvedLinkMap])
+
   const html = useMemo(() => {
     marked.use({ renderer, gfm: true, breaks: true })
-    return marked.parse(content, { async: false }) as string
-  }, [content, renderer])
+    return marked.parse(processedContent, { async: false }) as string
+  }, [processedContent, renderer])
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('.wikilink') as HTMLElement | null
+    if (!target) return
+    const id = target.dataset.linkId
+    const type = target.dataset.linkType
+    if (id && type && onLinkClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onLinkClick(id, type)
+    }
+  }, [onLinkClick])
+
+  useEffect(() => {
+    const id = 'wikilink-styles'
+    if (document.getElementById(id)) return
+    const style = document.createElement('style')
+    style.id = id
+    style.textContent = `
+      .wikilink { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 4px; cursor: pointer; font-size: 0.9em; transition: background 0.15s; }
+      .wikilink-plan { background: rgba(96,165,250,0.15); color: #60a5fa; }
+      .wikilink-note { background: rgba(192,132,252,0.15); color: #c084fc; }
+      .wikilink-deleted { background: rgba(239,68,68,0.12); color: #ef4444; text-decoration: line-through; }
+      .wikilink:hover { filter: brightness(1.2); }
+    `
+    document.head.appendChild(style)
+  }, [])
 
   return (
     <div
       className="markdown-body"
       dangerouslySetInnerHTML={{ __html: html }}
+      onClick={handleClick}
     />
   )
 }
