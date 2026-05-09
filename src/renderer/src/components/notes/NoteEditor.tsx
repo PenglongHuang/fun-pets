@@ -14,8 +14,12 @@ import { extractH1Title } from '@/utils/markdown'
 import { extractHeadings } from '@/lib/toc-extract'
 import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
 import useTextSelection from '@/hooks/useTextSelection'
-import { applyOperationToTextarea, createInsertImageWithPath } from '@/lib/markdown-operations'
+import { applyOperationToTextarea, createInsertImageWithPath, createInsertLinkRef } from '@/lib/markdown-operations'
+import { type LinkSearchResult } from '@/lib/link-resolver'
 import { imageApi, fs } from '@/lib/ipc'
+import LinkSuggestionPopup from '@/components/common/LinkSuggestionPopup'
+import { usePlanStore } from '@/stores/planStore'
+import { usePetStore } from '@/stores/petStore'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -101,6 +105,11 @@ export default function NoteEditor() {
   } | null>(null)
   const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null)
   const selection = useTextSelection(textareaEl)
+
+  const [linkPopupState, setLinkPopupState] = useState<{
+    anchorRect: { x: number; y: number }
+    triggerStart: number
+  } | null>(null)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -190,6 +199,53 @@ export default function NoteEditor() {
       setTextareaEl(ta)
     }
   }, [activeNoteId, mode])
+
+  const handleTriggerLinkPopup = useCallback((triggerStart: number) => {
+    if (!textareaEl) return
+    const rect = textareaEl.getBoundingClientRect()
+    const lineHeight = 18
+    const textBefore = content.substring(0, triggerStart)
+    const lineCount = textBefore.split('\n').length - 1
+    setLinkPopupState({
+      anchorRect: {
+        x: rect.left + 10,
+        y: rect.top + Math.min(lineCount * lineHeight, rect.height - 50),
+      },
+      triggerStart,
+    })
+  }, [textareaEl, content])
+
+  const handleLinkSelect = useCallback((result: LinkSearchResult) => {
+    if (!linkPopupState || !textareaEl) return
+    const triggerStart = linkPopupState.triggerStart
+    const currentCursorPos = textareaEl.selectionStart
+    const cleanedText = content.substring(0, triggerStart) + content.substring(currentCursorPos)
+    const op = createInsertLinkRef(result.id, result.title)
+    const opResult = op(cleanedText, triggerStart, triggerStart)
+    applyOperationToTextarea(textareaEl, content, opResult.text, opResult.start, opResult.end)
+    setLinkPopupState(null)
+  }, [linkPopupState, textareaEl, content])
+
+  const handleLinkPopupClose = useCallback(() => {
+    if (!linkPopupState || !textareaEl) { setLinkPopupState(null); return }
+    const triggerStart = linkPopupState.triggerStart
+    const currentCursorPos = textareaEl.selectionStart
+    const triggerLen = currentCursorPos - triggerStart
+    if (triggerLen > 0 && triggerLen <= 2) {
+      const cleaned = content.substring(0, triggerStart) + content.substring(currentCursorPos)
+      applyOperationToTextarea(textareaEl, content, cleaned, triggerStart, triggerStart)
+    }
+    setLinkPopupState(null)
+  }, [linkPopupState, textareaEl, content])
+
+  const handleLinkClick = useCallback((id: string, type: string) => {
+    if (type === 'note') {
+      setActiveNote(id)
+    } else if (type === 'plan') {
+      usePlanStore.getState().setActivePlan(id)
+      usePetStore.getState().setActivePanel('planner')
+    }
+  }, [setActiveNote])
 
   if (!note) return null
 
@@ -422,6 +478,8 @@ export default function NoteEditor() {
             mdFilePath={note.filePath}
             onInsertImageFromPicker={handleInsertImageFromPicker}
             showToast={showToast}
+            onTriggerLinkPopup={handleTriggerLinkPopup}
+            onLinkClick={handleLinkClick}
           />
         ) : mode === 'edit' ? (
           <MarkdownEditor
@@ -433,6 +491,7 @@ export default function NoteEditor() {
             mdFilePath={note.filePath}
             onInsertImageFromPicker={handleInsertImageFromPicker}
             showToast={showToast}
+            onTriggerLinkPopup={handleTriggerLinkPopup}
           />
         ) : (
           <div
@@ -440,7 +499,7 @@ export default function NoteEditor() {
             style={{ userSelect: 'text' }}
             onContextMenu={handlePreviewContextMenu}
           >
-            <MarkdownPreview content={content} mdFilePath={note.filePath} />
+            <MarkdownPreview content={content} mdFilePath={note.filePath} onLinkClick={handleLinkClick} />
           </div>
         )}
       </div>
@@ -472,8 +531,18 @@ export default function NoteEditor() {
           onApplyOperation={handleApplyOperation}
           previewContent={content}
           onInsertImage={handleInsertImageFromPicker}
+          onInsertLinkRef={() => handleTriggerLinkPopup(textareaEl?.selectionStart ?? 0)}
         />,
         document.body
+      )}
+
+      {linkPopupState && createPortal(
+        <LinkSuggestionPopup
+          anchorRect={linkPopupState.anchorRect}
+          onSelect={handleLinkSelect}
+          onClose={handleLinkPopupClose}
+        />,
+        document.body,
       )}
     </div>
   )
