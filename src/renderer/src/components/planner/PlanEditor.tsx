@@ -16,7 +16,7 @@ import { imageApi, fs } from '@/lib/ipc'
 
 const AUTO_SAVE_DELAY = 3000
 
-const IMAGE_REF_REGEX = /!\[[^\]]*\]\(\.?\/?assets\/([^)]+)\)/g
+const IMAGE_REF_REGEX = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
 
 async function cleanupOrphanImages(mdFilePath: string, content: string): Promise<void> {
   const refs = new Set<string>()

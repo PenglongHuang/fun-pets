@@ -45,7 +45,7 @@ export default function MarkdownPreview({ content, mdFilePath }: MarkdownPreview
 
   const imageRefs = useMemo(() => {
     const refs: string[] = []
-    const regex = /!\[[^\]]*\]\(\.?\/?assets\/([^)]+)\)/g
+    const regex = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
     let match
     while ((match = regex.exec(content)) !== null) {
       if (match[1]) refs.push(match[1])
@@ -90,7 +90,7 @@ export default function MarkdownPreview({ content, mdFilePath }: MarkdownPreview
     r.code = codeRenderer.code.bind(codeRenderer)
 
     r.image = function ({ href, title, text }: { href: string; title?: string; text?: string }) {
-      const localMatch = href?.match(/\.?\/?assets\/(.+)/)
+      const localMatch = href?.match(/[^)]*\/assets\/(.+)/)
       if (localMatch && imageMap[localMatch[1]]) {
         return `<img src="${imageMap[localMatch[1]]}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;border-radius:var(--radius-sm)">`
       }
