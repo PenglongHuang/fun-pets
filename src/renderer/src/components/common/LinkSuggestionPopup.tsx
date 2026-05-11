@@ -15,6 +15,7 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     searchLinks('').then(setResults)
@@ -54,8 +55,20 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
     el?.scrollIntoView({ block: 'nearest' })
   }, [selectedIndex])
 
+  // Close on click outside
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [onClose])
+
   return createPortal(
     <div
+      ref={containerRef}
       style={{
         position: 'fixed',
         left: anchorRect.x,

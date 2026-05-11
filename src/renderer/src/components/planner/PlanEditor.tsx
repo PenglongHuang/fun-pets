@@ -216,6 +216,16 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
     }
   }, [setActivePlan])
 
+  // Close link popup when trigger chars are deleted
+  useEffect(() => {
+    if (!linkPopupState) return
+    const start = linkPopupState.triggerStart
+    const chars = content.substring(start, start + 2)
+    if (chars !== '@' && chars !== '[[') {
+      setLinkPopupState(null)
+    }
+  }, [content, linkPopupState])
+
   if (!plan) return null
 
   const handleChange = useCallback((newContent: string) => {
