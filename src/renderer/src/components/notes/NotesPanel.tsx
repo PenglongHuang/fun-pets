@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNoteStore } from '@/stores/noteStore'
+import { useNavigationStore } from '@/stores/navigationStore'
 import { Plus, Trash2, CheckSquare, Square, FileText } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useToastStore } from '@/stores/toastStore'
@@ -18,6 +19,7 @@ export default function NotesPanel() {
   const deleteNote = useNoteStore((s) => s.deleteNote)
   const deleteNotes = useNoteStore((s) => s.deleteNotes)
   const setActiveNote = useNoteStore((s) => s.setActiveNote)
+  const navPush = useNavigationStore((s) => s.push)
 
   const sortBy = useNoteStore((s) => s.sortBy)
   const viewMode = useNoteStore((s) => s.viewMode)
@@ -229,7 +231,7 @@ export default function NotesPanel() {
               editMode={editMode}
               searchQuery={searchQuery || undefined}
               onMoreClick={(noteId, rect) => setContextMenu({ noteId, rect })}
-              onClick={setActiveNote}
+              onClick={(id) => navPush({ panel: 'notes', subView: 'editor', noteId: id })}
               onToggleSelect={toggleSelect}
             />
           ))

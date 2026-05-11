@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNoteStore } from '@/stores/noteStore'
+import { useNavigationStore } from '@/stores/navigationStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
 import SplitPaneLiveEditor from '@/components/common/SplitPaneLiveEditor'
@@ -18,8 +19,6 @@ import { applyOperationToTextarea, createInsertImageWithPath, createInsertLinkRe
 import { type LinkSearchResult } from '@/lib/link-resolver'
 import { imageApi, fs } from '@/lib/ipc'
 import LinkSuggestionPopup from '@/components/common/LinkSuggestionPopup'
-import { usePlanStore } from '@/stores/planStore'
-import { usePetStore } from '@/stores/petStore'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -74,8 +73,8 @@ export default function NoteEditor() {
   const saveNoteContent = useNoteStore((s) => s.saveNoteContent)
   const updateNoteTitle = useNoteStore((s) => s.updateNoteTitle)
   const updateNoteTags = useNoteStore((s) => s.updateNoteTags)
-  const setActiveNote = useNoteStore((s) => s.setActiveNote)
   const notes = useNoteStore((s) => s.notes)
+  const navPush = useNavigationStore((s) => s.push)
 
   const allTags = useMemo(() => getAllTags(notes), [notes])
 
@@ -149,17 +148,20 @@ export default function NoteEditor() {
     showToast(isAuto ? '自动保存成功' : '保存成功')
   }, [note, saveNoteContent, updateNoteTitle, showToast])
 
+  const doSaveRef = useRef(doSave)
+  doSaveRef.current = doSave
+
   // Ctrl+S handler
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        doSave(false)
+        doSaveRef.current(false)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [doSave])
+  }, [])
 
   // Cleanup: save dirty content on unmount
   useEffect(() => {
@@ -240,12 +242,11 @@ export default function NoteEditor() {
 
   const handleLinkClick = useCallback((id: string, type: string) => {
     if (type === 'note') {
-      setActiveNote(id)
+      navPush({ panel: 'notes', subView: 'editor', noteId: id })
     } else if (type === 'plan') {
-      usePlanStore.getState().setActivePlan(id)
-      usePetStore.getState().setActivePanel('planner')
+      navPush({ panel: 'planner', subView: 'editor', planId: id })
     }
-  }, [setActiveNote])
+  }, [navPush])
 
   // Close link popup when trigger chars are deleted
   useEffect(() => {
@@ -394,7 +395,7 @@ export default function NoteEditor() {
             if (tocVisible) {
               setTocVisible(false)
             }
-            setActiveNote(null)
+            navPush({ panel: 'notes', subView: 'list' })
           }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
