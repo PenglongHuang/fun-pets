@@ -58,11 +58,16 @@ export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: Ma
 
   const imageRefsKey = imageRefs.join(',')
 
-  const resolvedLinkMap = useMemo(() => {
+  const [resolvedLinkMap, setResolvedLinkMap] = useState<Map<string, any>>(new Map())
+
+  useEffect(() => {
     const links = parseLinks(content)
-    if (links.length === 0) return new Map<string, any>()
+    if (links.length === 0) {
+      setResolvedLinkMap(new Map())
+      return
+    }
     const ids = Array.from(new Set(links.map(l => l.id)))
-    return resolveLinks(ids)
+    resolveLinks(ids).then(setResolvedLinkMap)
   }, [content])
 
   useEffect(() => {

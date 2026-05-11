@@ -17,7 +17,7 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setResults(searchLinks(''))
+    searchLinks('').then(setResults)
   }, [])
 
   useEffect(() => {
@@ -25,9 +25,10 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
   }, [])
 
   useEffect(() => {
-    const r = searchLinks(query)
-    setResults(r)
-    setSelectedIndex(0)
+    searchLinks(query).then(r => {
+      setResults(r)
+      setSelectedIndex(0)
+    })
   }, [query])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
