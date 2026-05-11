@@ -139,6 +139,7 @@ export const useNavigationStore = create<NavigationStore>()((set, get) => ({
       canBack: newEntries.length - 1 > 0,
       canForward: false,
     })
+    restoreState(entry)
   },
 
   back: () => {
@@ -260,6 +261,7 @@ git commit -m "refactor: lift plannerView state from PlannerPanel to planStore"
 - [ ] **Step 1: Create NavHistoryButtons.tsx**
 
 ```tsx
+import { useState } from 'react'
 import { useNavigationStore } from '@/stores/navigationStore'
 
 export default function NavHistoryButtons() {
@@ -315,8 +317,6 @@ export default function NavHistoryButtons() {
   )
 }
 ```
-
-Note: Add `import { useState } from 'react'` at the top.
 
 - [ ] **Step 2: Commit**
 
@@ -714,7 +714,7 @@ export default function Sidebar() {
 }
 ```
 
-Note: IconStrip no longer receives `onToggle` prop — it will call `nav.push()` directly (handled in Task 8).
+Note: IconStrip no longer receives `onToggle` prop — it will call `nav.push()` directly (update IconStrip interface in this same task).
 
 - [ ] **Step 2: Commit**
 
@@ -909,7 +909,7 @@ In `src/renderer/src/components/planner/PlanList.tsx`:
 2. Add inside component: `const navPush = useNavigationStore((s) => s.push)`
 3. In `handleCreateConfirm` (line ~118): Change `setActivePlan(plan.id)` to `navPush({ panel: 'planner', subView: 'editor', planId: plan.id })`
 4. In `handleStartFocusFromPlan` (line ~127): Change `setActivePanel('timer')` to `navPush({ panel: 'timer' })`
-5. In the toolbar `onViewModeChange` callback (line ~218-219): Where `onSwitchToCalendar()` is called, wrap it with a nav push. Change:
+5. In the toolbar `onViewModeChange` callback (line ~218-219): Where `onSwitchToCalendar()` is called, replace with a nav push. Change:
    ```tsx
    if (mode === 'calendar') onSwitchToCalendar()
    ```
@@ -917,6 +917,7 @@ In `src/renderer/src/components/planner/PlanList.tsx`:
    ```tsx
    if (mode === 'calendar') navPush({ panel: 'planner', subView: 'calendar' })
    ```
+   Since `navPush` with `restoreState` handles `setPlannerView('calendar')`, the `onSwitchToCalendar` prop is no longer needed. Remove it from PlanList props interface and the PlannerPanel pass-through.
 6. Find where `setActivePlan` is called directly (from `PlanCard` `onClick`). It should be changed similarly to pass through `navPush`. Look for `setActivePlan` calls in the card rendering and change them to `navPush({ panel: 'planner', subView: 'editor', planId: id })`.
 
 - [ ] **Step 2: Update PlanEditor**
@@ -956,6 +957,7 @@ In `src/renderer/src/components/planner/CalendarView.tsx`:
 2. Add inside component: `const navPush = useNavigationStore((s) => s.push)`
 3. Remove the `setActivePlan` selector (line ~24)
 4. Find the plan click handler (line ~221): Change `onClick={() => setActivePlan(p.id)}` to `onClick={() => navPush({ panel: 'planner', subView: 'editor', planId: p.id })}`
+5. The `onSwitchView` prop in CalendarView calls back to PlannerPanel which calls `setPlannerView('list')`. This is the "calendar → list" transition. Since `navPush` with `restoreState` now handles the view switch, update PlannerPanel's CalendarView `onSwitchView` callback to also push a history entry. In `PlannerPanel.tsx`, change the CalendarView's `onSwitchView` prop to call `navPush({ panel: 'planner', subView: 'list' })` instead of just `setPlannerView('list')`. The `restoreState` inside `push` will handle both `setActivePlan(null)` and `setPlannerView('list')`.
 
 - [ ] **Step 4: Verify full flow**
 
