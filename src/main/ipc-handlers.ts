@@ -1,4 +1,4 @@
-import { ipcMain, Notification, dialog, screen, app } from 'electron'
+import { ipcMain, Notification, dialog, screen, app, BrowserWindow } from 'electron'
 import { readFile, writeFile, unlink, readdir, mkdir, rm, cp } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname, resolve, parse as parsePath } from 'path'
@@ -251,6 +251,43 @@ export function registerIpcHandlers(): void {
     await mkdir(dirname(filePath), { recursive: true })
     return writeFile(filePath, content, 'utf-8')
   })
+
+  // PDF export
+  ipcMain.handle(
+    IPC.EXPORT_PDF,
+    async (_e, html: string, fileName: string, defaultPath?: string) => {
+      let win: BrowserWindow | null = null
+      try {
+        win = new BrowserWindow({ width: 800, height: 1200, show: false, webPreferences: { offscreen: true } })
+        await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+        await new Promise((r) => setTimeout(r, 500))
+
+        const pdfBytes = await win.webContents.printToPDF({
+          pageSize: 'A4',
+          printBackground: true,
+          margins: { top: 20, bottom: 20, left: 25, right: 25 },
+        })
+
+        const saveResult = await withForegroundDialog(() =>
+          dialog.showSaveDialog({
+            defaultPath: defaultPath || fileName,
+            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+          }),
+        )
+
+        if (saveResult.canceled) {
+          return { success: true as const }
+        }
+
+        await writeFile(saveResult.filePath!, Buffer.from(pdfBytes))
+        return { success: true as const, filePath: saveResult.filePath }
+      } catch (err: any) {
+        return { success: false as const, error: err.message || String(err) }
+      } finally {
+        win?.destroy()
+      }
+    },
+  )
 
   // Auto-launch
   ipcMain.handle(IPC.AUTOLAUNCH_ENABLE, () => {
