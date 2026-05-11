@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
 import { fs, store, imageApi } from '@/lib/ipc'
+import { titleToSlug } from '@/utils/slug'
 import type { Plan, PlanType } from '@/types/plan'
 
 const COLOR_MAP: Record<PlanType, string> = {
@@ -45,6 +46,8 @@ interface PlanStore {
   activePlanId: string | null
   sortBy: 'time' | 'name' | 'planDate'
   viewMode: 'card' | 'compact'
+  plannerView: 'list' | 'calendar'
+  setPlannerView: (view: 'list' | 'calendar') => void
   load: () => Promise<void>
   createPlan: (title: string, startDate: string, endDate: string | null, planType?: PlanType, content?: string) => Promise<Plan>
   updatePlan: (id: string, updates: { title?: string; startDate?: string; endDate?: string | null; planType?: PlanType }) => Promise<void>
@@ -68,6 +71,7 @@ export const usePlanStore = create<PlanStore>()(
     activePlanId: null,
     sortBy: 'time',
     viewMode: 'card',
+    plannerView: 'list',
 
     load: async () => {
       try {
@@ -97,7 +101,7 @@ export const usePlanStore = create<PlanStore>()(
 
     createPlan: async (title, startDate, endDate, planType, content = '') => {
       const id = nanoid(8)
-      const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
+      const slug = titleToSlug(title)
       const resolvedType = planType || detectType(startDate, endDate)
       const filePath = buildFilePath(id, slug, startDate, resolvedType, endDate)
       const color = COLOR_MAP[resolvedType]
@@ -117,7 +121,8 @@ export const usePlanStore = create<PlanStore>()(
       const newType = updates.planType ?? plan.planType
       const newStart = updates.startDate ?? plan.startDate
       const newEnd = updates.endDate !== undefined ? updates.endDate : plan.endDate
-      const slug = plan.filePath.split('/').pop()!.replace(/^[^-]+-/, '').replace(/\.md$/, '')
+      const newTitle = updates.title ?? plan.title
+      const slug = titleToSlug(newTitle)
       const newFilePath = buildFilePath(plan.id, slug, newStart, newType, newEnd)
 
       // Move file if path changed
@@ -232,6 +237,10 @@ export const usePlanStore = create<PlanStore>()(
     setViewMode: (mode) => {
       set({ viewMode: mode })
       store.set('planPrefs', { sortBy: get().sortBy, viewMode: mode })
+    },
+
+    setPlannerView: (view) => {
+      set({ plannerView: view })
     },
   })),
 )
