@@ -277,11 +277,11 @@ export function registerIpcHandlers(): void {
           }),
         )
 
-        if (saveResult.canceled) {
+        if (saveResult.canceled || !saveResult.filePath) {
           return { success: true as const }
         }
 
-        await writeFile(saveResult.filePath!, Buffer.from(pdfBytes))
+        await writeFile(saveResult.filePath, Buffer.from(pdfBytes))
         return { success: true as const, filePath: saveResult.filePath }
       } catch (err: any) {
         return { success: false as const, error: err.message || String(err) }

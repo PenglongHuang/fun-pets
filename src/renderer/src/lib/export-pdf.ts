@@ -1,4 +1,4 @@
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -75,7 +75,7 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
 .markdown-body th { background: #f6f8fa; font-weight: 600; }
 `
 
-function buildCodeRenderer(): marked.MarkedExtension {
+function buildCodeRenderer(): Marked.MarkedExtension {
   const renderer = new marked.Renderer()
   renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
     if (lang && hljs.getLanguage(lang)) {
@@ -109,14 +109,14 @@ async function resolveImages(content: string, mdFilePath: string): Promise<Recor
   return imageMap
 }
 
-function buildImageRenderer(imageMap: Record<string, string>): marked.MarkedExtension {
-  const renderer = new marked.Renderer()
+function buildImageRenderer(imageMap: Record<string, string>): Marked.MarkedExtension {
+  const renderer = new Marked.Renderer()
   renderer.image = function ({ href, title, text }: { href: string; title?: string; text?: string }) {
     const localMatch = href?.match(/\/assets\/([^/]+)$/)
     if (localMatch && imageMap[localMatch[1]]) {
-      return `<img src="${imageMap[localMatch[1]]}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;height:auto" />`
+      return `<img src="${imageMap[localMatch[1]]}" alt="${escapeAttr(text || '')}" ${title ? `title="${escapeAttr(title)}"` : ''} style="max-width:100%;height:auto" />`
     }
-    return `<img src="${href || ''}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;height:auto" />`
+    return `<img src="${escapeAttr(href || '')}" alt="${escapeAttr(text || '')}" ${title ? `title="${escapeAttr(title)}"` : ''} style="max-width:100%;height:auto" />`
   }
   return { renderer }
 }
@@ -124,22 +124,22 @@ function buildImageRenderer(imageMap: Record<string, string>): marked.MarkedExte
 function renderMetadata(meta: ExportOptions['meta']): string {
   if (!meta) return ''
   const lines: string[] = []
-  if (meta.createdAt) lines.push(`<div>创建时间: ${meta.createdAt}</div>`)
-  if (meta.tags?.length) lines.push(`<div>标签: ${meta.tags.join(', ')}</div>`)
-  if (meta.planType) lines.push(`<div>类型: ${meta.planType}</div>`)
-  if (meta.startDate) lines.push(`<div>开始: ${meta.startDate}</div>`)
-  if (meta.endDate) lines.push(`<div>结束: ${meta.endDate}</div>`)
+  if (meta.createdAt) lines.push(`<div>创建时间: ${escapeHtml(meta.createdAt)}</div>`)
+  if (meta.tags?.length) lines.push(`<div>标签: ${escapeHtml(meta.tags.join(', '))}</div>`)
+  if (meta.planType) lines.push(`<div>类型: ${escapeHtml(meta.planType)}</div>`)
+  if (meta.startDate) lines.push(`<div>开始: ${escapeHtml(meta.startDate)}</div>`)
+  if (meta.endDate) lines.push(`<div>结束: ${escapeHtml(meta.endDate)}</div>`)
   return `<div class="meta">${lines.join('')}</div><hr>`
 }
 
 async function renderMarkdown(content: string, mdFilePath: string): Promise<string> {
   const imageMap = await resolveImages(content, mdFilePath)
 
-  marked.use({ gfm: true, breaks: true })
-  marked.use(buildCodeRenderer())
-  marked.use(buildImageRenderer(imageMap))
+  const exportMarked = new Marked({ gfm: true, breaks: true })
+  exportMarked.use(buildCodeRenderer())
+  exportMarked.use(buildImageRenderer(imageMap))
 
-  return marked.parse(content, { async: false }) as string
+  return exportMarked.parse(content, { async: false }) as string
 }
 
 export async function buildExportHtml(options: ExportOptions): Promise<string> {
@@ -158,5 +158,9 @@ ${metaHtml}
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function escapeAttr(str: string): string {
+  return escapeHtml(str)
 }

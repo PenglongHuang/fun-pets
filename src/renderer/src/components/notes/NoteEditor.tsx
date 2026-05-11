@@ -392,15 +392,15 @@ export default function NoteEditor() {
     })
   }, [])
 
-  const handleExport = async (mode: ExportMode) => {
+  const handleExport = async (exportMode: ExportMode) => {
     if (!note) return
     try {
-      const content = await loadNoteContent(activeNoteId!)
+      const loadedContent = await loadNoteContent(activeNoteId!)
       const html = await buildExportHtml({
-        content: content || '',
+        content: loadedContent || '',
         mdFilePath: note.filePath,
         title: note.title,
-        mode,
+        mode: exportMode,
         fileName: `${note.title}.pdf`,
         meta: {
           tags: note.tags,
