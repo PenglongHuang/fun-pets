@@ -1,4 +1,4 @@
-const WIKILINK_REGEX = /\[\[([a-zA-Z0-9_-]{6,21})\|([^\]]*)\]\]/g
+const WIKILINK_REGEX = /\[\[([a-zA-Z0-9_-]{6,21})\|((?:[^\]]|\](?!\]))*)\]\]/g
 
 export interface ParsedLink {
   id: string
