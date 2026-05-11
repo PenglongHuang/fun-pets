@@ -251,8 +251,9 @@ export default function NoteEditor() {
   useEffect(() => {
     if (!linkPopupState) return
     const start = linkPopupState.triggerStart
-    const chars = content.substring(start, start + 2)
-    if (chars !== '@' && chars !== '[[') {
+    const firstChar = content[start]
+    const twoChars = content.substring(start, start + 2)
+    if (firstChar !== '@' && twoChars !== '[[') {
       setLinkPopupState(null)
     }
   }, [content, linkPopupState])
