@@ -26,7 +26,11 @@ interface NavigationStore {
 }
 
 function entriesEqual(a: NavigationEntry, b: NavigationEntry): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
+  if (a.panel !== b.panel) return false
+  if ('subView' in a && 'subView' in b && a.subView !== b.subView) return false
+  if ('noteId' in a && 'noteId' in b && a.noteId !== b.noteId) return false
+  if ('planId' in a && 'planId' in b && a.planId !== b.planId) return false
+  return true
 }
 
 function restoreState(entry: NavigationEntry) {
@@ -81,13 +85,24 @@ export const useNavigationStore = create<NavigationStore>()((set, get) => ({
   push: (entry) => {
     const { entries, currentIndex } = get()
     if (entriesEqual(entries[currentIndex], entry)) return
-    const newEntries = [...entries.slice(0, currentIndex + 1), entry]
-    set({
-      entries: newEntries,
-      currentIndex: newEntries.length - 1,
-      canBack: newEntries.length - 1 > 0,
-      canForward: false,
-    })
+    const MAX_HISTORY = 100
+    let newEntries = [...entries.slice(0, currentIndex + 1), entry]
+    if (newEntries.length > MAX_HISTORY) {
+      const offset = newEntries.length - MAX_HISTORY
+      set({
+        entries: newEntries.slice(offset),
+        currentIndex: newEntries.length - 1 - offset,
+        canBack: true,
+        canForward: false,
+      })
+    } else {
+      set({
+        entries: newEntries,
+        currentIndex: newEntries.length - 1,
+        canBack: newEntries.length - 1 > 0,
+        canForward: false,
+      })
+    }
     restoreState(entry)
   },
 

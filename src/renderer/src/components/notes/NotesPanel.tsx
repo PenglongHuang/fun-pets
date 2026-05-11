@@ -64,7 +64,7 @@ export default function NotesPanel() {
 
   const handleCreate = async () => {
     const note = await createNote('新笔记')
-    setActiveNote(note.id)
+    navPush({ panel: 'notes', subView: 'editor', noteId: note.id })
     useToastStore.getState().show('新建笔记成功')
   }
 
@@ -298,7 +298,7 @@ export default function NotesPanel() {
       {contextMenu && (
         <ContextMenu
           items={[
-            { label: '查看详情', icon: <FileText size={13} />, onClick: () => setActiveNote(contextMenu.noteId) },
+            { label: '查看详情', icon: <FileText size={13} />, onClick: () => navPush({ panel: 'notes', subView: 'editor', noteId: contextMenu.noteId }) },
             { label: '删除笔记', icon: <Trash2 size={13} />, danger: true, onClick: () => setDeleteTarget({ type: 'single', id: contextMenu.noteId }) },
           ]}
           anchorRect={contextMenu.rect}

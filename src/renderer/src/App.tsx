@@ -173,9 +173,8 @@ export default function App() {
     const cleanup = window.api.onNavigateToNote(async (noteId) => {
       const { useNoteStore } = await import('@/stores/noteStore')
       await useNoteStore.getState().load()
-      useNoteStore.getState().setActiveNote(noteId)
-      const { usePetStore } = await import('@/stores/petStore')
-      usePetStore.getState().setActivePanel('notes')
+      const { useNavigationStore } = await import('@/stores/navigationStore')
+      useNavigationStore.getState().push({ panel: 'notes', subView: 'editor', noteId })
       if (usePetStore.getState().windowMode !== 'expanded') {
         windowApi.expandPanel()
       }
