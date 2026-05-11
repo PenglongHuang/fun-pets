@@ -45,18 +45,26 @@ export async function searchLinks(query: string): Promise<LinkSearchResult[]> {
   const plans = usePlanStore.getState().plans
   const notes = useNoteStore.getState().notes
 
-  const results: LinkSearchResult[] = []
+  const matchedPlans: LinkSearchResult[] = []
+  const matchedNotes: LinkSearchResult[] = []
 
   for (const p of plans) {
     if (!q || p.title.toLowerCase().includes(q)) {
-      results.push({ id: p.id, title: p.title, type: 'plan', tags: p.tags ?? [] })
+      matchedPlans.push({ id: p.id, title: p.title, type: 'plan', tags: p.tags ?? [] })
     }
   }
   for (const n of notes) {
     if (!q || n.title.toLowerCase().includes(q)) {
-      results.push({ id: n.id, title: n.title, type: 'note', tags: n.tags ?? [] })
+      matchedNotes.push({ id: n.id, title: n.title, type: 'note', tags: n.tags ?? [] })
     }
   }
 
-  return results.slice(0, 10)
+  const results: LinkSearchResult[] = []
+  const maxLen = Math.max(matchedPlans.length, matchedNotes.length)
+  for (let i = 0; i < maxLen; i++) {
+    if (matchedPlans[i]) results.push(matchedPlans[i])
+    if (matchedNotes[i]) results.push(matchedNotes[i])
+  }
+
+  return results.slice(0, 20)
 }

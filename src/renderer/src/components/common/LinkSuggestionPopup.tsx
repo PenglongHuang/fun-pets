@@ -17,6 +17,14 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const popupW = 280
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const flipUp = anchorRect.y + 320 > vh - 8
+  let left = anchorRect.x
+  if (left + popupW > vw - 8) left = vw - popupW - 8
+  left = Math.max(8, left)
+
   useEffect(() => {
     searchLinks('').then(setResults)
   }, [])
@@ -71,10 +79,12 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
       ref={containerRef}
       style={{
         position: 'fixed',
-        left: anchorRect.x,
-        top: anchorRect.y,
+        left,
+        ...(flipUp
+          ? { bottom: vh - anchorRect.y + 4 }
+          : { top: anchorRect.y }),
         zIndex: 10000,
-        width: 280,
+        width: popupW,
         maxHeight: 320,
         background: 'rgba(40, 40, 44, 0.98)',
         border: '0.5px solid rgba(255,255,255,0.12)',

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
 import { fs, store, imageApi } from '@/lib/ipc'
+import { titleToSlug } from '@/utils/slug'
 import type { Note } from '@/types/note'
 
 
@@ -70,7 +71,7 @@ export const useNoteStore = create<NoteStore>()(
 
     createNote: async (title, content = '', tags) => {
       const id = nanoid(8)
-      const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').slice(0, 20)
+      const slug = titleToSlug(title)
       const filePath = `notes/${id}-${slug}.md`
       const color = '#3b82f6'
       const now = new Date().toISOString()
@@ -136,11 +137,25 @@ export const useNoteStore = create<NoteStore>()(
     },
 
     updateNoteTitle: async (id, title) => {
+      const note = get().notes.find((n) => n.id === id)
+      if (!note) return
+
+      const slug = titleToSlug(title)
+      const newFilePath = `notes/${id}-${slug}.md`
+
+      if (newFilePath !== note.filePath) {
+        const content = await fs.readFile(note.filePath)
+        await fs.writeFile(newFilePath, content)
+        try { await fs.deleteFile(note.filePath) } catch {}
+        try { await imageApi.moveAssets(note.filePath, newFilePath) } catch {}
+      }
+
       set((s) => {
-        const note = s.notes.find((n) => n.id === id)
-        if (!note) return
-        note.title = title
-        note.updatedAt = new Date().toISOString()
+        const n = s.notes.find((n) => n.id === id)
+        if (!n) return
+        n.title = title
+        n.filePath = newFilePath
+        n.updatedAt = new Date().toISOString()
       })
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
     },

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { usePlanStore } from '@/stores/planStore'
 import MarkdownEditor from '@/components/common/MarkdownEditor'
 import MarkdownPreview from '@/components/common/MarkdownPreview'
-import { ArrowLeft, Pencil, Eye } from 'lucide-react'
+import { ArrowLeft, Pencil, Eye, MoreVertical, Download } from 'lucide-react'
 import { motion } from 'motion/react'
 import { extractH1Title } from '@/utils/markdown'
 import { useToast } from '@/components/common/Toast'
@@ -16,6 +16,11 @@ import { type LinkSearchResult } from '@/lib/link-resolver'
 import { useNavigationStore } from '@/stores/navigationStore'
 import { imageApi, fs } from '@/lib/ipc'
 import LinkSuggestionPopup from '@/components/common/LinkSuggestionPopup'
+import ContextMenu from '@/components/ui/ContextMenu'
+import ExportDialog from '@/components/common/ExportDialog'
+import { buildExportHtml, type ExportMode } from '@/lib/export-pdf'
+import { pdfExport } from '@/lib/ipc'
+import { useToastStore } from '@/stores/toastStore'
 
 const AUTO_SAVE_DELAY = 3000
 
@@ -77,6 +82,8 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
   } | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const [editorContextMenu, setEditorContextMenu] = useState<DOMRect | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const { showToast, ToastContainer } = useToast()
 
@@ -230,6 +237,37 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
 
   if (!plan) return null
 
+  const handleExport = async (mode: ExportMode) => {
+    if (!plan) return
+    try {
+      const loadedContent = await loadPlanContent(planId)
+      const html = await buildExportHtml({
+        content: loadedContent || '',
+        mdFilePath: plan.filePath,
+        title: plan.title,
+        mode,
+        fileName: `${plan.title}.pdf`,
+        meta: {
+          tags: plan.tags,
+          createdAt: plan.createdAt?.slice(0, 10),
+          planType: plan.planType,
+          startDate: plan.startDate,
+          endDate: plan.endDate,
+        },
+      })
+      const result = await pdfExport.generate(html, `${plan.title}.pdf`)
+      setExportOpen(false)
+      if (result.success && 'filePath' in result) {
+        useToastStore.getState().show('PDF 导出成功')
+      } else if (!result.success) {
+        useToastStore.getState().show('导出失败: ' + result.error)
+      }
+    } catch (err: any) {
+      setExportOpen(false)
+      useToastStore.getState().show('导出失败: ' + (err.message || String(err)))
+    }
+  }
+
   const handleChange = useCallback((newContent: string) => {
     setContent(newContent)
     setDirty(true)
@@ -317,6 +355,13 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
             </motion.button>
           ))}
         </div>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); setEditorContextMenu(e.currentTarget.getBoundingClientRect()) }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-quaternary)', padding: 4, borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}
+        >
+          <MoreVertical size={14} />
+        </button>
       </div>
 
       {/* Tags */}
@@ -325,6 +370,24 @@ export default function PlanEditor({ planId }: PlanEditorProps) {
         allTags={allTags}
         onUpdateTags={(tags) => updatePlanTags(plan.id, tags)}
       />
+
+      {editorContextMenu && (
+        <ContextMenu
+          items={[
+            {
+              label: '导出 PDF',
+              icon: <Download size={13} />,
+              onClick: () => {
+                setExportOpen(true)
+                setEditorContextMenu(null)
+              },
+            },
+          ]}
+          anchorRect={editorContextMenu}
+          onClose={() => setEditorContextMenu(null)}
+        />
+      )}
+      {exportOpen && <ExportDialog open onClose={() => setExportOpen(false)} onExport={handleExport} />}
 
       {/* Content */}
       <div ref={editorRef} className="flex-1 min-h-0" style={{ overflow: editMode === 'preview' ? 'auto' : 'hidden' }}>

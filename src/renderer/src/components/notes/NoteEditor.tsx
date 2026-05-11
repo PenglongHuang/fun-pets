@@ -505,7 +505,7 @@ export default function NoteEditor() {
         </div>
 
         <button
-          onClick={(e) => setEditorContextMenu(e.currentTarget.getBoundingClientRect())}
+          onClick={(e) => { e.stopPropagation(); setEditorContextMenu(e.currentTarget.getBoundingClientRect()) }}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-quaternary)', padding: 4, borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}
         >
           <MoreVertical size={14} />

@@ -2,6 +2,7 @@ import { ipcMain, Notification, dialog, screen, app, BrowserWindow } from 'elect
 import { readFile, writeFile, unlink, readdir, mkdir, rm, cp } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname, resolve, parse as parsePath } from 'path'
+import { tmpdir } from 'os'
 import { getStore } from './store'
 import { resizeWindow, getMainWindow, expandToPanelMode, collapseToPetMode, startPetCursorTracking, stopPetCursorTracking, setPetDragging, movePetDrag, toggleAlwaysOnTop } from './window'
 import { IPC } from '../shared/ipc-channels'
@@ -257,17 +258,17 @@ export function registerIpcHandlers(): void {
     IPC.EXPORT_PDF,
     async (_e, html: string, fileName: string, defaultPath?: string) => {
       let win: BrowserWindow | null = null
+      let tmpFile = ''
       try {
         win = new BrowserWindow({ width: 800, height: 1200, show: false, webPreferences: { offscreen: true } })
-        await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
-        await new Promise<void>((resolve) => {
-          win!.webContents.once('did-finish-load', () => setTimeout(resolve, 500))
-        })
+        tmpFile = join(tmpdir(), `funbuddy-export-${nanoid(8)}.html`)
+        await writeFile(tmpFile, html, 'utf-8')
+        await win.loadURL(`file://${tmpFile}`)
+        await new Promise(resolve => setTimeout(resolve, 500))
 
         const pdfBytes = await win.webContents.printToPDF({
           pageSize: 'A4',
           printBackground: true,
-          margins: { top: 20, bottom: 20, left: 25, right: 25 },
         })
 
         const saveResult = await withForegroundDialog(() =>
@@ -287,6 +288,7 @@ export function registerIpcHandlers(): void {
         return { success: false as const, error: err.message || String(err) }
       } finally {
         win?.destroy()
+        if (tmpFile) { unlink(tmpFile).catch(() => {}) }
       }
     },
   )

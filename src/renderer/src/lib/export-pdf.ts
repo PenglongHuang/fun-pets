@@ -1,4 +1,4 @@
-import { Marked } from 'marked'
+import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -75,7 +75,7 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
 .markdown-body th { background: #f6f8fa; font-weight: 600; }
 `
 
-function buildCodeRenderer(): Marked.MarkedExtension {
+function buildCodeRenderer(): marked.MarkedExtension {
   const renderer = new marked.Renderer()
   renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
     if (lang && hljs.getLanguage(lang)) {
@@ -109,8 +109,8 @@ async function resolveImages(content: string, mdFilePath: string): Promise<Recor
   return imageMap
 }
 
-function buildImageRenderer(imageMap: Record<string, string>): Marked.MarkedExtension {
-  const renderer = new Marked.Renderer()
+function buildImageRenderer(imageMap: Record<string, string>): marked.MarkedExtension {
+  const renderer = new marked.Renderer()
   renderer.image = function ({ href, title, text }: { href: string; title?: string; text?: string }) {
     const localMatch = href?.match(/\/assets\/([^/]+)$/)
     if (localMatch && imageMap[localMatch[1]]) {
@@ -135,11 +135,11 @@ function renderMetadata(meta: ExportOptions['meta']): string {
 async function renderMarkdown(content: string, mdFilePath: string): Promise<string> {
   const imageMap = await resolveImages(content, mdFilePath)
 
-  const exportMarked = new Marked({ gfm: true, breaks: true })
-  exportMarked.use(buildCodeRenderer())
-  exportMarked.use(buildImageRenderer(imageMap))
+  marked.use({ gfm: true, breaks: true })
+  marked.use(buildCodeRenderer())
+  marked.use(buildImageRenderer(imageMap))
 
-  return exportMarked.parse(content, { async: false }) as string
+  return marked.parse(content, { async: false }) as string
 }
 
 export async function buildExportHtml(options: ExportOptions): Promise<string> {
