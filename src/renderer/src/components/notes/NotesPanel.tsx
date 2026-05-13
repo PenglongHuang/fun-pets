@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNoteStore } from '@/stores/noteStore'
 import { useNavigationStore } from '@/stores/navigationStore'
-import { Plus, Trash2, CheckSquare, Square, FileText, Download } from 'lucide-react'
+import { Plus, Trash2, CheckSquare, Square, FileText, Download, Copy } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useToastStore } from '@/stores/toastStore'
 import NoteEditor from './NoteEditor'
@@ -21,6 +21,7 @@ export default function NotesPanel() {
   const createNote = useNoteStore((s) => s.createNote)
   const deleteNote = useNoteStore((s) => s.deleteNote)
   const deleteNotes = useNoteStore((s) => s.deleteNotes)
+  const duplicateNote = useNoteStore((s) => s.duplicateNote)
   const setActiveNote = useNoteStore((s) => s.setActiveNote)
   const loadNoteContent = useNoteStore((s) => s.loadNoteContent)
   const navPush = useNavigationStore((s) => s.push)
@@ -340,6 +341,16 @@ export default function NotesPanel() {
                 const note = notes.find((n) => n.id === contextMenu.noteId)
                 if (note) setExportTarget({ noteId: contextMenu.noteId, title: note.title })
                 setContextMenu(null)
+              },
+            },
+            {
+              label: '复制笔记',
+              icon: <Copy size={13} />,
+              onClick: async () => {
+                const newNote = await duplicateNote(contextMenu.noteId)
+                setContextMenu(null)
+                navPush({ panel: 'notes', subView: 'editor', noteId: newNote.id })
+                useToastStore.getState().show('复制笔记成功')
               },
             },
             { label: '删除笔记', icon: <Trash2 size={13} />, danger: true, onClick: () => setDeleteTarget({ type: 'single', id: contextMenu.noteId }) },
