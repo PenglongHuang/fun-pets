@@ -24,6 +24,7 @@ interface NoteStore {
   updateNoteTitle: (id: string, title: string) => Promise<void>
   renameTag: (oldName: string, newName: string) => Promise<void>
   deleteTag: (tagName: string) => Promise<void>
+  duplicateNote: (id: string) => Promise<Note>
   setActiveNote: (id: string | null) => void
   setSortBy: (sort: 'time' | 'name') => void
   setViewMode: (mode: 'card' | 'compact') => void
@@ -184,6 +185,13 @@ export const useNoteStore = create<NoteStore>()(
         }
       })
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
+    },
+
+    duplicateNote: async (id) => {
+      const note = get().notes.find((n) => n.id === id)
+      if (!note) throw new Error(`Note ${id} not found`)
+      const content = await get().loadNoteContent(id)
+      return get().createNote('复制 ' + note.title, content, note.tags ? [...note.tags] : undefined)
     },
 
     setActiveNote: (id) => set({ activeNoteId: id }),
