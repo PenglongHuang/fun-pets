@@ -187,6 +187,10 @@ export const usePlanStore = create<PlanStore>()(
         p.filePath = newFilePath
         p.color = COLOR_MAP[newType]
         p.updatedAt = new Date().toISOString()
+        if (updates.title !== undefined) {
+          const tab = s.tabs.find((t) => t.id === id)
+          if (tab) tab.title = updates.title
+        }
       })
       await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
     },
@@ -199,6 +203,7 @@ export const usePlanStore = create<PlanStore>()(
       }
       set((s) => { s.plans = s.plans.filter((p) => p.id !== id) })
       await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
+      get().closeTab(id)
     },
 
     deletePlans: async (ids) => {
@@ -212,6 +217,7 @@ export const usePlanStore = create<PlanStore>()(
       }
       set((s) => { s.plans = s.plans.filter((p) => !idSet.has(p.id)) })
       await fs.writeFile('plans/index.json', JSON.stringify(get().plans, null, 2))
+      for (const id of ids) { get().closeTab(id) }
     },
 
     savePlanContent: async (id, content) => {

@@ -132,6 +132,7 @@ export const useNoteStore = create<NoteStore>()(
       }
       set((s) => { s.notes = s.notes.filter((n) => n.id !== id) })
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
+      get().closeTab(id)
     },
 
     deleteNotes: async (ids) => {
@@ -145,6 +146,7 @@ export const useNoteStore = create<NoteStore>()(
       }
       set((s) => { s.notes = s.notes.filter((n) => !idSet.has(n.id)) })
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
+      for (const id of ids) { get().closeTab(id) }
     },
 
     saveNoteContent: async (id, content) => {
@@ -189,6 +191,8 @@ export const useNoteStore = create<NoteStore>()(
         n.title = title
         n.filePath = newFilePath
         n.updatedAt = new Date().toISOString()
+        const tab = s.tabs.find((t) => t.id === id)
+        if (tab) tab.title = title
       })
       await fs.writeFile('notes/index.json', JSON.stringify(get().notes, null, 2))
     },
