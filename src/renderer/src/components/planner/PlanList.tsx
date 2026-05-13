@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { usePlanStore } from '@/stores/planStore'
-import { Plus, CheckSquare, Square, Calendar, Trash2, Timer, FileText, CalendarRange, Download } from 'lucide-react'
+import { Plus, CheckSquare, Square, Calendar, Trash2, Timer, FileText, CalendarRange, Download, Copy } from 'lucide-react'
 import type { PlanTypeFilterValue } from '@/components/common/PlanTypeFilter'
 import SearchBar from '@/components/common/SearchBar'
 import PlanToolbar from '@/components/planner/PlanToolbar'
@@ -31,6 +31,7 @@ export default function PlanList() {
   const setViewMode = usePlanStore((s) => s.setViewMode)
   const updatePlan = usePlanStore((s) => s.updatePlan)
   const loadPlanContent = usePlanStore((s) => s.loadPlanContent)
+  const duplicatePlan = usePlanStore((s) => s.duplicatePlan)
   const navPush = useNavigationStore((s) => s.push)
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -370,6 +371,12 @@ export default function PlanList() {
               setContextMenu(null)
             }},
             { label: '编辑类型和时间', icon: <CalendarRange size={13} />, onClick: () => setEditTarget(contextMenu.planId) },
+            { label: '复制计划', icon: <Copy size={13} />, onClick: async () => {
+              const newPlan = await duplicatePlan(contextMenu.planId)
+              setContextMenu(null)
+              navPush({ panel: 'planner', subView: 'editor', planId: newPlan.id })
+              useToastStore.getState().show('复制计划成功')
+            }},
             { label: '删除计划', icon: <Trash2 size={13} />, danger: true, onClick: () => handleSingleDelete(contextMenu.planId) },
           ]}
           anchorRect={contextMenu.rect}
