@@ -286,7 +286,10 @@ export default function PlanList() {
               searchQuery={searchQuery || undefined}
               onFocusClick={handleStartFocusFromPlan}
               onMoreClick={(planId, rect) => setContextMenu({ planId, rect })}
-              onClick={(id) => navPush({ panel: 'planner', subView: 'editor', planId: id })}
+              onClick={(id) => {
+                usePlanStore.getState().openTab(id)
+                navPush({ panel: 'planner', subView: 'editor', planId: id })
+              }}
               onToggleSelect={toggleSelect}
             />
           ))

@@ -290,7 +290,10 @@ export default function NotesPanel() {
               editMode={editMode}
               searchQuery={searchQuery || undefined}
               onMoreClick={(noteId, rect) => setContextMenu({ noteId, rect })}
-              onClick={(id) => navPush({ panel: 'notes', subView: 'editor', noteId: id })}
+              onClick={(id) => {
+                useNoteStore.getState().openTab(id)
+                navPush({ panel: 'notes', subView: 'editor', noteId: id })
+              }}
               onToggleSelect={toggleSelect}
             />
           ))
