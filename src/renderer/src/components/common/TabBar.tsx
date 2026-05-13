@@ -8,6 +8,7 @@ interface TabBarProps {
   activeTabId: string | null
   onSelect: (id: string) => void
   onClose: (id: string) => void
+  onBeforeClose?: (id: string) => boolean  // return false to cancel close
   onPin: (id: string) => void
   onReorder: (fromIdx: number, toIdx: number) => void
   onCloseOthers: (id: string) => void
@@ -15,11 +16,16 @@ interface TabBarProps {
 }
 
 export default function TabBar({
-  tabs, activeTabId, onSelect, onClose, onPin, onReorder, onCloseOthers, onCloseUnpinned,
+  tabs, activeTabId, onSelect, onClose, onBeforeClose, onPin, onReorder, onCloseOthers, onCloseUnpinned,
 }: TabBarProps) {
   const [contextMenu, setContextMenu] = useState<{ tabId: string; rect: DOMRect } | null>(null)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+
+  const handleClose = useCallback((id: string) => {
+    if (onBeforeClose && !onBeforeClose(id)) return
+    onClose(id)
+  }, [onBeforeClose, onClose])
 
   const handleDragStart = useCallback((idx: number) => (e: React.DragEvent) => {
     setDragIdx(idx)
@@ -124,7 +130,7 @@ export default function TabBar({
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.title}</span>
                 {!tab.pinned && isActive && (
                   <span
-                    onClick={(e) => { e.stopPropagation(); onClose(tab.id) }}
+                    onClick={(e) => { e.stopPropagation(); handleClose(tab.id) }}
                     style={{
                       color: 'var(--text-quaternary)',
                       fontSize: 10,
@@ -158,7 +164,7 @@ export default function TabBar({
             ...(!contextTab.pinned ? [{
               label: '关闭',
               icon: <X size={13} />,
-              onClick: () => onClose(contextTab.id),
+              onClick: () => handleClose(contextTab.id),
             }] : []),
             { label: '关闭其他', onClick: () => onCloseOthers(contextTab.id) },
             { label: '关闭所有未固定', onClick: onCloseUnpinned },

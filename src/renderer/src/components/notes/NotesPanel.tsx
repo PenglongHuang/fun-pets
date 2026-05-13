@@ -183,6 +183,7 @@ export default function NotesPanel() {
           activeTabId={activeTabId}
           onSelect={switchTab}
           onClose={closeTab}
+          onBeforeClose={() => true}
           onPin={pinTab}
           onReorder={reorderTabs}
           onCloseOthers={closeOtherTabs}
