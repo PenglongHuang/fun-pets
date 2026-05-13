@@ -5,6 +5,7 @@ import { fs, store, imageApi } from '@/lib/ipc'
 import { titleToSlug } from '@/utils/slug'
 import type { Plan, PlanType } from '@/types/plan'
 import type { Tab } from '@/types/tab'
+import { useSettingsStore } from './settingsStore'
 
 const COLOR_MAP: Record<PlanType, string> = {
   daily: '#60a5fa',
@@ -303,6 +304,16 @@ export const usePlanStore = create<PlanStore>()(
       } else {
         const newTab: Tab = { id, title: plan.title, pinned: false }
         set((s) => {
+          const maxTabs = useSettingsStore.getState().app.maxTabsPerPanel || 20
+          if (s.tabs.length >= maxTabs) {
+            let lastUnpinnedIdx = -1
+            for (let i = s.tabs.length - 1; i >= 0; i--) {
+              if (!s.tabs[i].pinned) { lastUnpinnedIdx = i; break }
+            }
+            if (lastUnpinnedIdx !== -1) {
+              s.tabs.splice(lastUnpinnedIdx, 1)
+            }
+          }
           s.tabs.push(newTab)
           s.activeTabId = id
           s.activePlanId = id

@@ -5,6 +5,7 @@ import { fs, store, imageApi } from '@/lib/ipc'
 import { titleToSlug } from '@/utils/slug'
 import type { Note } from '@/types/note'
 import type { Tab } from '@/types/tab'
+import { useSettingsStore } from './settingsStore'
 
 
 interface NoteStore {
@@ -237,6 +238,16 @@ export const useNoteStore = create<NoteStore>()(
       } else {
         const newTab: Tab = { id, title: note.title, pinned: false }
         set((s) => {
+          const maxTabs = useSettingsStore.getState().app.maxTabsPerPanel || 20
+          if (s.tabs.length >= maxTabs) {
+            let lastUnpinnedIdx = -1
+            for (let i = s.tabs.length - 1; i >= 0; i--) {
+              if (!s.tabs[i].pinned) { lastUnpinnedIdx = i; break }
+            }
+            if (lastUnpinnedIdx !== -1) {
+              s.tabs.splice(lastUnpinnedIdx, 1)
+            }
+          }
           s.tabs.push(newTab)
           s.activeTabId = id
           s.activeNoteId = id
