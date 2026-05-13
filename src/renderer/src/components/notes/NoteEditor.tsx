@@ -25,8 +25,6 @@ import { buildExportHtml, type ExportMode } from '@/lib/export-pdf'
 import { pdfExport } from '@/lib/ipc'
 import { useToastStore } from '@/stores/toastStore'
 
-const AUTO_SAVE_DELAY = 3000
-
 const IMAGE_REF_REGEX = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
 
 async function cleanupOrphanImages(mdFilePath: string, content: string): Promise<void> {
@@ -92,7 +90,6 @@ export default function NoteEditor() {
   const [tocVisible, setTocVisible] = useState(false)
   const [currentLineIndex, setCurrentLineIndex] = useState<number | null>(0)
   const [dirty, setDirty] = useState(false)
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const contentRef = useRef(content)
   contentRef.current = content
   const dirtyRef = useRef(false)
@@ -129,7 +126,7 @@ export default function NoteEditor() {
     }
   }, [activeNoteId, loadNoteContent])
 
-  const doSave = useCallback(async (isAuto: boolean) => {
+  const doSave = useCallback(async () => {
     if (!note) return
     await saveNoteContent(note.id, contentRef.current)
 
@@ -153,7 +150,7 @@ export default function NoteEditor() {
     prevImageRefsRef.current = currentRefs
 
     setDirty(false)
-    showToast(isAuto ? '自动保存成功' : '保存成功')
+    showToast('保存成功')
   }, [note, saveNoteContent, updateNoteTitle, showToast])
 
   const doSaveRef = useRef(doSave)
@@ -164,7 +161,7 @@ export default function NoteEditor() {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        doSaveRef.current(false)
+        doSaveRef.current()
       }
     }
     window.addEventListener('keydown', handler)
@@ -174,7 +171,6 @@ export default function NoteEditor() {
   // Cleanup: save dirty content on unmount
   useEffect(() => {
     return () => {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
       if (dirtyRef.current) {
         const store = useNoteStore.getState()
         const { activeNoteId } = store
@@ -272,10 +268,7 @@ export default function NoteEditor() {
   const handleChange = useCallback((newContent: string) => {
     setContent(newContent)
     setDirty(true)
-
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doSave(true), AUTO_SAVE_DELAY)
-  }, [doSave])
+  }, [])
 
   const toggleToc = () => {
     setTocVisible(!tocVisible)

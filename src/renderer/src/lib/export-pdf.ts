@@ -43,7 +43,7 @@ export interface ExportOptions {
   }
 }
 
-const IMAGE_REF_REGEX = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
+const IMAGE_REF_REGEX = /!\[[^\]]*\]\(([^)]*\/assets\/[^)]+)\)/g
 
 const CSS = `
 body {
@@ -112,9 +112,8 @@ async function resolveImages(content: string, mdFilePath: string): Promise<Recor
 function buildImageRenderer(imageMap: Record<string, string>): marked.MarkedExtension {
   const renderer = new marked.Renderer()
   renderer.image = function ({ href, title, text }: { href: string; title?: string; text?: string }) {
-    const localMatch = href?.match(/\/assets\/([^/]+)$/)
-    if (localMatch && imageMap[localMatch[1]]) {
-      return `<img src="${imageMap[localMatch[1]]}" alt="${escapeAttr(text || '')}" ${title ? `title="${escapeAttr(title)}"` : ''} style="max-width:100%;height:auto" />`
+    if (href && imageMap[href]) {
+      return `<img src="${imageMap[href]}" alt="${escapeAttr(text || '')}" ${title ? `title="${escapeAttr(title)}"` : ''} style="max-width:100%;height:auto" />`
     }
     return `<img src="${escapeAttr(href || '')}" alt="${escapeAttr(text || '')}" ${title ? `title="${escapeAttr(title)}"` : ''} style="max-width:100%;height:auto" />`
   }

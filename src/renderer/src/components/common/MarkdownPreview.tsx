@@ -48,7 +48,7 @@ export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: Ma
 
   const imageRefs = useMemo(() => {
     const refs: string[] = []
-    const regex = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
+    const regex = /!\[[^\]]*\]\(([^)]*\/assets\/[^)]+)\)/g
     let match
     while ((match = regex.exec(content)) !== null) {
       if (match[1]) refs.push(match[1])
@@ -105,12 +105,13 @@ export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: Ma
     r.code = codeRenderer.code.bind(codeRenderer)
 
     r.image = function ({ href, title, text }: { href: string; title?: string; text?: string }) {
-      const localMatch = href?.match(/[^)]*\/assets\/(.+)/)
-      if (localMatch && imageMap[localMatch[1]]) {
-        return `<img src="${imageMap[localMatch[1]]}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;border-radius:var(--radius-sm)">`
+      const isLocalAsset = href?.includes('/assets/')
+      if (isLocalAsset && imageMap[href]) {
+        return `<img src="${imageMap[href]}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;border-radius:var(--radius-sm)">`
       }
-      if (localMatch && !imageMap[localMatch[1]]) {
-        return `<div style="padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:var(--radius-sm);color:var(--text-tertiary);font-size:12px;text-align:center">图片未找到: ${text || localMatch[1]}</div>`
+      if (isLocalAsset && !imageMap[href]) {
+        const fileName = href.split('/').pop() || href
+        return `<div style="padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:var(--radius-sm);color:var(--text-tertiary);font-size:12px;text-align:center">图片未找到: ${text || fileName}</div>`
       }
       return `<img src="${href || ''}" alt="${text || ''}" ${title ? `title="${title}"` : ''} style="max-width:100%;border-radius:var(--radius-sm)">`
     }

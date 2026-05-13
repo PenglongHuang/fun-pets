@@ -421,14 +421,26 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.IMAGE_READ_AS_DATA_URL, async (_e, mdFilePath: string, imageFileName: string, maxWidth?: number) => {
-    const cacheKey = `${mdFilePath}:${imageFileName}:${maxWidth || 0}`
+  ipcMain.handle(IPC.IMAGE_READ_AS_DATA_URL, async (_e, mdFilePath: string, imagePath: string, maxWidth?: number) => {
+    const cacheKey = `${mdFilePath}:${imagePath}:${maxWidth || 0}`
     const cached = dataUrlCache.get(cacheKey)
     if (cached) return cached
 
-    const { assetsDir } = getAssetsInfo(mdFilePath)
-    const fullPath = join(assetsDir, imageFileName)
-    if (!resolve(fullPath).startsWith(resolve(assetsDir))) {
+    const storageDir = getStorageDir()
+    const mdFull = validatePath(storageDir, mdFilePath)
+    const mdDir = dirname(mdFull)
+
+    let fullPath: string
+    if (imagePath.includes('/') || imagePath.includes('\\')) {
+      // Full relative path (e.g., "./othernote/assets/abc.png")
+      fullPath = resolve(mdDir, imagePath)
+    } else {
+      // Just a filename — use current file's assets directory
+      const { assetsDir } = getAssetsInfo(mdFilePath)
+      fullPath = join(assetsDir, imagePath)
+    }
+
+    if (!resolve(fullPath).startsWith(resolve(storageDir))) {
       throw new Error('Invalid image path')
     }
 
