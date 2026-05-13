@@ -15,7 +15,7 @@ Add a browser-like tab bar to the planner and notes panels, allowing users to ha
 | Overflow | Horizontal scrolling |
 | Architecture | Extend existing stores (planStore / noteStore) |
 | Max tabs | Configurable in settings, default 20 |
-| Nav history limit | Configurable in settings, default 50 |
+| Nav history limit | Configurable in settings, default 100 |
 
 ## Data Model
 
@@ -65,7 +65,7 @@ Added to `settingsStore` under `settings.app`:
 
 ```typescript
 maxTabsPerPanel: number    // default: 20
-navHistoryLimit: number    // default: 50
+navHistoryLimit: number    // default: 100
 ```
 
 When `openTab` is called and tab count exceeds `maxTabsPerPanel`, the least-recently-visited unpinned tab is automatically closed.
