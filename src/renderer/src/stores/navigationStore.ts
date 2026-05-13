@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { usePetStore } from './petStore'
 import { useNoteStore } from './noteStore'
 import { usePlanStore } from './planStore'
+import { useSettingsStore } from './settingsStore'
 
 type NavigationEntry =
   | { panel: 'planner'; subView: 'list' }
@@ -51,7 +52,7 @@ function restoreState(entry: NavigationEntry) {
       } else if (entry.subView === 'editor') {
         const exists = planStore.plans.some((p) => p.id === entry.planId)
         if (exists) {
-          planStore.setActivePlan(entry.planId)
+          planStore.openTab(entry.planId)
           planStore.setPlannerView('list')
         } else {
           planStore.setActivePlan(null)
@@ -65,7 +66,7 @@ function restoreState(entry: NavigationEntry) {
       } else if (entry.subView === 'editor') {
         const exists = noteStore.notes.some((n) => n.id === entry.noteId)
         if (exists) {
-          noteStore.setActiveNote(entry.noteId)
+          noteStore.openTab(entry.noteId)
         } else {
           noteStore.setActiveNote(null)
         }
@@ -85,7 +86,7 @@ export const useNavigationStore = create<NavigationStore>()((set, get) => ({
   push: (entry) => {
     const { entries, currentIndex } = get()
     if (entriesEqual(entries[currentIndex], entry)) return
-    const MAX_HISTORY = 100
+    const MAX_HISTORY = useSettingsStore.getState().app.navHistoryLimit || 100
     let newEntries = [...entries.slice(0, currentIndex + 1), entry]
     if (newEntries.length > MAX_HISTORY) {
       const offset = newEntries.length - MAX_HISTORY
