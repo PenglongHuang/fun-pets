@@ -4,12 +4,15 @@ import { nanoid } from 'nanoid'
 import { fs, store, imageApi } from '@/lib/ipc'
 import { titleToSlug } from '@/utils/slug'
 import type { Note } from '@/types/note'
+import type { Tab } from '@/types/tab'
 
 
 interface NoteStore {
   notes: Note[]
   loaded: boolean
   activeNoteId: string | null
+  tabs: Tab[]
+  activeTabId: string | null
   sortBy: 'time' | 'name'
   viewMode: 'card' | 'compact'
   editorMode: 'live' | 'edit' | 'preview'
@@ -30,6 +33,13 @@ interface NoteStore {
   setViewMode: (mode: 'card' | 'compact') => void
   setEditorMode: (mode: 'live' | 'edit' | 'preview') => void
   setTocMaxLevel: (level: number) => void
+  openTab: (id: string) => void
+  closeTab: (id: string) => void
+  switchTab: (id: string) => void
+  pinTab: (id: string) => void
+  reorderTabs: (fromIdx: number, toIdx: number) => void
+  closeOtherTabs: (id: string) => void
+  closeUnpinnedTabs: () => void
 }
 
 export const useNoteStore = create<NoteStore>()(
@@ -37,6 +47,8 @@ export const useNoteStore = create<NoteStore>()(
     notes: [],
     loaded: false,
     activeNoteId: null,
+    tabs: [],
+    activeTabId: null,
     sortBy: 'time',
     viewMode: 'card',
     editorMode: 'edit' as const,
@@ -54,19 +66,38 @@ export const useNoteStore = create<NoteStore>()(
         if (validNotes.length !== notes.length) {
           await fs.writeFile('notes/index.json', JSON.stringify(validNotes, null, 2))
         }
+        const prefs = await store.get<{
+          sortBy: string
+          viewMode: string
+          editorMode?: string
+          tocMaxLevel?: number
+          tabs?: { id: string; title: string; pinned: boolean }[]
+          activeTabId?: string | null
+        }>('notePrefs')
+        if (prefs) {
+          const validTabs = (prefs.tabs ?? []).filter((t) =>
+            validNotes.some((n) => n.id === t.id)
+          )
+          const refreshedTabs = validTabs.map((t) => {
+            const note = validNotes.find((n) => n.id === t.id)
+            return { ...t, title: note?.title ?? t.title }
+          })
+          const validActiveTabId = refreshedTabs.some((t) => t.id === prefs.activeTabId)
+            ? prefs.activeTabId ?? null
+            : (refreshedTabs[0]?.id ?? null)
+          set({
+            sortBy: (prefs.sortBy as any) ?? 'time',
+            viewMode: (prefs.viewMode as any) ?? 'card',
+            editorMode: (prefs.editorMode as 'live' | 'edit' | 'preview') ?? 'edit',
+            tocMaxLevel: prefs.tocMaxLevel ?? 3,
+            tabs: refreshedTabs,
+            activeTabId: validActiveTabId,
+            activeNoteId: validActiveTabId,
+          })
+        }
         set({ notes: validNotes, loaded: true })
       } catch {
         set({ notes: [], loaded: true })
-      }
-
-      const prefs = await store.get<{ sortBy: string; viewMode: string; editorMode?: string; tocMaxLevel?: number }>('notePrefs')
-      if (prefs) {
-        set({
-          sortBy: (prefs.sortBy as any) ?? 'time',
-          viewMode: (prefs.viewMode as any) ?? 'card',
-          editorMode: (prefs.editorMode as 'live' | 'edit' | 'preview') ?? 'edit',
-          tocMaxLevel: prefs.tocMaxLevel ?? 3,
-        })
       }
     },
 
@@ -196,24 +227,121 @@ export const useNoteStore = create<NoteStore>()(
 
     setActiveNote: (id) => set({ activeNoteId: id }),
 
+    openTab: (id) => {
+      const { tabs, notes } = get()
+      const note = notes.find((n) => n.id === id)
+      if (!note) return
+      const existing = tabs.find((t) => t.id === id)
+      if (existing) {
+        set({ activeTabId: id, activeNoteId: id })
+      } else {
+        const newTab: Tab = { id, title: note.title, pinned: false }
+        set((s) => {
+          s.tabs.push(newTab)
+          s.activeTabId = id
+          s.activeNoteId = id
+        })
+      }
+      persistNotePrefs(get)
+    },
+
+    closeTab: (id) => {
+      const { tabs, activeTabId } = get()
+      const idx = tabs.findIndex((t) => t.id === id)
+      if (idx === -1) return
+      const remaining = tabs.filter((t) => t.id !== id)
+      let nextActiveId: string | null = null
+      if (activeTabId === id) {
+        if (remaining.length > 0) {
+          const nextIdx = Math.min(idx, remaining.length - 1)
+          nextActiveId = remaining[nextIdx].id
+        }
+      } else {
+        nextActiveId = activeTabId
+      }
+      set({ tabs: remaining, activeTabId: nextActiveId, activeNoteId: nextActiveId })
+      persistNotePrefs(get)
+    },
+
+    switchTab: (id) => {
+      const { tabs } = get()
+      if (!tabs.some((t) => t.id === id)) return
+      set({ activeTabId: id, activeNoteId: id })
+      persistNotePrefs(get)
+    },
+
+    pinTab: (id) => {
+      set((s) => {
+        const tab = s.tabs.find((t) => t.id === id)
+        if (!tab) return
+        tab.pinned = !tab.pinned
+        const pinned = s.tabs.filter((t) => t.pinned)
+        const unpinned = s.tabs.filter((t) => !t.pinned)
+        s.tabs = [...pinned, ...unpinned]
+      })
+      persistNotePrefs(get)
+    },
+
+    reorderTabs: (fromIdx, toIdx) => {
+      set((s) => {
+        const [moved] = s.tabs.splice(fromIdx, 1)
+        s.tabs.splice(toIdx, 0, moved)
+        const pinned = s.tabs.filter((t) => t.pinned)
+        const unpinned = s.tabs.filter((t) => !t.pinned)
+        s.tabs = [...pinned, ...unpinned]
+      })
+      persistNotePrefs(get)
+    },
+
+    closeOtherTabs: (id) => {
+      const tab = get().tabs.find((t) => t.id === id)
+      if (!tab) return
+      set((s) => {
+        s.tabs = s.tabs.filter((t) => t.id === id || t.pinned)
+      })
+      const newActive = get().tabs.find((t) => t.id === id) ? id : get().tabs[0]?.id ?? null
+      set({ activeTabId: newActive, activeNoteId: newActive })
+      persistNotePrefs(get)
+    },
+
+    closeUnpinnedTabs: () => {
+      set((s) => {
+        s.tabs = s.tabs.filter((t) => t.pinned)
+      })
+      const newActive = get().tabs[0]?.id ?? null
+      set({ activeTabId: newActive, activeNoteId: newActive })
+      persistNotePrefs(get)
+    },
+
     setSortBy: (sort) => {
       set({ sortBy: sort })
-      store.set('notePrefs', { sortBy: sort, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
+      persistNotePrefs(get)
     },
 
     setViewMode: (mode) => {
       set({ viewMode: mode })
-      store.set('notePrefs', { sortBy: get().sortBy, viewMode: mode, editorMode: get().editorMode, tocMaxLevel: get().tocMaxLevel })
+      persistNotePrefs(get)
     },
 
     setEditorMode: (mode) => {
       set({ editorMode: mode })
-      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: mode, tocMaxLevel: get().tocMaxLevel })
+      persistNotePrefs(get)
     },
 
     setTocMaxLevel: (level) => {
       set({ tocMaxLevel: Math.max(1, Math.min(6, level)) })
-      store.set('notePrefs', { sortBy: get().sortBy, viewMode: get().viewMode, editorMode: get().editorMode, tocMaxLevel: level })
+      persistNotePrefs(get)
     },
   }))
 )
+
+function persistNotePrefs(get: () => NoteStore) {
+  store.set('notePrefs', {
+    sortBy: get().sortBy,
+    viewMode: get().viewMode,
+    editorMode: get().editorMode,
+    tocMaxLevel: get().tocMaxLevel,
+    tabs: get().tabs,
+    activeTabId: get().activeTabId,
+  })
+}
