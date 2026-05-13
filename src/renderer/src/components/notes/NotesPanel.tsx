@@ -11,6 +11,7 @@ import NoteToolbar from './NoteToolbar'
 import NoteCard from './NoteCard'
 import ExportDialog from '@/components/common/ExportDialog'
 import { buildExportHtml, type ExportMode } from '@/lib/export-pdf'
+import TabBar from '@/components/common/TabBar'
 import { pdfExport } from '@/lib/ipc'
 
 export default function NotesPanel() {
@@ -25,6 +26,15 @@ export default function NotesPanel() {
   const setActiveNote = useNoteStore((s) => s.setActiveNote)
   const loadNoteContent = useNoteStore((s) => s.loadNoteContent)
   const navPush = useNavigationStore((s) => s.push)
+
+  const tabs = useNoteStore((s) => s.tabs)
+  const activeTabId = useNoteStore((s) => s.activeTabId)
+  const switchTab = useNoteStore((s) => s.switchTab)
+  const closeTab = useNoteStore((s) => s.closeTab)
+  const pinTab = useNoteStore((s) => s.pinTab)
+  const reorderTabs = useNoteStore((s) => s.reorderTabs)
+  const closeOtherTabs = useNoteStore((s) => s.closeOtherTabs)
+  const closeUnpinnedTabs = useNoteStore((s) => s.closeUnpinnedTabs)
 
   const sortBy = useNoteStore((s) => s.sortBy)
   const viewMode = useNoteStore((s) => s.viewMode)
@@ -165,8 +175,22 @@ export default function NotesPanel() {
     )
   }
 
-  if (activeNoteId) {
-    return <NoteEditor />
+  if (tabs.length > 0 && activeTabId) {
+    return (
+      <div className="flex flex-col h-full">
+        <TabBar
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onSelect={switchTab}
+          onClose={closeTab}
+          onPin={pinTab}
+          onReorder={reorderTabs}
+          onCloseOthers={closeOtherTabs}
+          onCloseUnpinned={closeUnpinnedTabs}
+        />
+        <NoteEditor />
+      </div>
+    )
   }
 
   return (
