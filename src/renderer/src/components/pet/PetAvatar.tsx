@@ -126,7 +126,7 @@ export default function PetAvatar({ size = 100, onClick, className = '', showTim
 
   return (
     <div
-      style={{ position: 'relative', overflow: 'visible' }}
+      style={{ position: 'relative', overflow: 'visible', paddingBottom: showTimerBubble ? 40 : 0 }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
