@@ -98,6 +98,8 @@ export const useTimerStore = create<TimerStore>()(
       usePetStore.getState().setTimerBubblePinned(false)
       get()._persist()
     },
+
+    tick: () => {
       const { status, remainingMs, _lastTickAt } = get()
       if (status !== 'running') return
       const now = Date.now()
@@ -113,7 +115,7 @@ export const useTimerStore = create<TimerStore>()(
       }
     },
 
-    _completePhase: () => {
+    tick: () => {
       const { phase, round, totalMs, remainingMs, pendingPlanId } = get()
       const settings = useSettingsStore.getState().pomodoro
 
