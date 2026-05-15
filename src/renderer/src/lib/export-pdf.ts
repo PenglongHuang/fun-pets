@@ -9,6 +9,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import xml from 'highlight.js/lib/languages/xml'
 import markdown from 'highlight.js/lib/languages/markdown'
 import { imageApi } from './ipc'
+import { escapeRawAngles } from './link-parser'
 
 // Register languages (same as MarkdownPreview)
 hljs.registerLanguage('javascript', javascript)
@@ -138,7 +139,7 @@ async function renderMarkdown(content: string, mdFilePath: string): Promise<stri
   marked.use(buildCodeRenderer())
   marked.use(buildImageRenderer(imageMap))
 
-  return marked.parse(content, { async: false }) as string
+  return marked.parse(escapeRawAngles(content), { async: false }) as string
 }
 
 export async function buildExportHtml(options: ExportOptions): Promise<string> {

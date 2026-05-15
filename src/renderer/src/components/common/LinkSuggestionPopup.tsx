@@ -53,6 +53,7 @@ export default function LinkSuggestionPopup({ anchorRect, onSelect, onClose }: L
         onSelect(results[selectedIndex])
       }
     } else if (e.key === 'Escape') {
+      e.stopPropagation()
       e.preventDefault()
       onClose()
     }

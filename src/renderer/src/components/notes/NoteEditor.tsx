@@ -17,34 +17,13 @@ import MarkdownContextMenu from '@/components/ui/MarkdownContextMenu'
 import useTextSelection from '@/hooks/useTextSelection'
 import { applyOperationToTextarea, createInsertImageWithPath, createInsertLinkRef } from '@/lib/markdown-operations'
 import { type LinkSearchResult } from '@/lib/link-resolver'
-import { imageApi, fs } from '@/lib/ipc'
+import { imageApi } from '@/lib/ipc'
 import LinkSuggestionPopup from '@/components/common/LinkSuggestionPopup'
 import ContextMenu from '@/components/ui/ContextMenu'
 import ExportDialog from '@/components/common/ExportDialog'
 import { buildExportHtml, type ExportMode } from '@/lib/export-pdf'
 import { pdfExport } from '@/lib/ipc'
 import { useToastStore } from '@/stores/toastStore'
-
-const IMAGE_REF_REGEX = /!\[[^\]]*\]\([^)]*\/assets\/([^)]+)\)/g
-
-async function cleanupOrphanImages(mdFilePath: string, content: string): Promise<void> {
-  const refs = new Set<string>()
-  let match
-  while ((match = IMAGE_REF_REGEX.exec(content)) !== null) {
-    if (match[1]) refs.add(match[1])
-  }
-  if (refs.size === 0) return
-  try {
-    const dir = mdFilePath.replace(/\.md$/, '')
-    const assetsPath = `${dir}/assets`
-    const files = await fs.readDir(assetsPath)
-    for (const file of files) {
-      if (!refs.has(file)) {
-        await imageApi.deleteImage(mdFilePath, file)
-      }
-    }
-  } catch { /* no assets dir */ }
-}
 
 function findScrollParent(el: HTMLElement): HTMLElement | null {
   let parent = el.parentElement
@@ -94,7 +73,6 @@ export default function NoteEditor() {
   contentRef.current = content
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
-  const prevImageRefsRef = useRef<Set<string>>(new Set())
   const toggleTocRef = useRef<() => void>(() => {})
   const editorRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -134,20 +112,6 @@ export default function NoteEditor() {
     if (h1 && h1 !== note.title) {
       await updateNoteTitle(note.id, h1)
     }
-
-    // Orphan image cleanup — only when image refs changed
-    const currentRefs = new Set<string>()
-    let match
-    while ((match = IMAGE_REF_REGEX.exec(contentRef.current)) !== null) {
-      if (match[1]) currentRefs.add(match[1])
-    }
-    if (currentRefs.size > 0 || prevImageRefsRef.current.size > 0) {
-      if (currentRefs.size !== prevImageRefsRef.current.size ||
-          [...currentRefs].some(r => !prevImageRefsRef.current.has(r))) {
-        await cleanupOrphanImages(note.filePath, contentRef.current)
-      }
-    }
-    prevImageRefsRef.current = currentRefs
 
     setDirty(false)
     showToast('保存成功')
@@ -245,12 +209,16 @@ export default function NoteEditor() {
   }, [linkPopupState, textareaEl, content])
 
   const handleLinkClick = useCallback((id: string, type: string) => {
+    if (type === 'deleted') {
+      showToast('链接指向的内容已被删除')
+      return
+    }
     if (type === 'note') {
       navPush({ panel: 'notes', subView: 'editor', noteId: id })
     } else if (type === 'plan') {
       navPush({ panel: 'planner', subView: 'editor', planId: id })
     }
-  }, [navPush])
+  }, [navPush, showToast])
 
   // Close link popup when trigger chars are deleted
   useEffect(() => {
@@ -263,8 +231,6 @@ export default function NoteEditor() {
     }
   }, [content, linkPopupState])
 
-  if (!note) return null
-
   const handleChange = useCallback((newContent: string) => {
     setContent(newContent)
     setDirty(true)
@@ -274,6 +240,55 @@ export default function NoteEditor() {
     setTocVisible(!tocVisible)
   }
   toggleTocRef.current = toggleToc
+
+  const handleEditorContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    const ta = e.currentTarget
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode,
+      selection: { start: ta.selectionStart, end: ta.selectionEnd },
+    })
+  }, [mode])
+
+  const handleApplyOperation = useCallback((newText: string, cursorStart: number, cursorEnd: number) => {
+    if (!textareaEl) return
+    applyOperationToTextarea(textareaEl, content, newText, cursorStart, cursorEnd)
+    setContextMenuState(null)
+  }, [content, textareaEl])
+
+  const handleInsertImageFromPicker = useCallback(async () => {
+    if (!note || !textareaEl) return
+    try {
+      const result = await imageApi.pickAndSave(note.filePath)
+      if (!result) return
+      const op = createInsertImageWithPath(result.relativePath, result.fileName)
+      const res = op(content, textareaEl.selectionStart, textareaEl.selectionEnd)
+      applyOperationToTextarea(textareaEl, content, res.text, res.start, res.end)
+    } catch {
+      showToast('保存图片失败')
+    }
+  }, [note, content, textareaEl, showToast])
+
+  const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
+    })
+  }, [])
+
+  const handleLivePreviewContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenuState({
+      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
+      mode: 'preview',
+      selection: null,
+    })
+  }, [])
+
+  if (!note) return null
 
   const handleHeadingClick = (lineIndex: number) => {
     setCurrentLineIndex(lineIndex)
@@ -338,53 +353,6 @@ export default function NoteEditor() {
     }
   }
 
-  const handleEditorContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
-    e.preventDefault()
-    const ta = e.currentTarget
-    setContextMenuState({
-      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
-      mode,
-      selection: { start: ta.selectionStart, end: ta.selectionEnd },
-    })
-  }, [mode])
-
-  const handleApplyOperation = useCallback((newText: string, cursorStart: number, cursorEnd: number) => {
-    if (!textareaEl) return
-    applyOperationToTextarea(textareaEl, content, newText, cursorStart, cursorEnd)
-    setContextMenuState(null)
-  }, [content, textareaEl])
-
-  const handleInsertImageFromPicker = useCallback(async () => {
-    if (!note || !textareaEl) return
-    try {
-      const result = await imageApi.pickAndSave(note.filePath)
-      if (!result) return
-      const op = createInsertImageWithPath(result.relativePath, result.fileName)
-      const res = op(content, textareaEl.selectionStart, textareaEl.selectionEnd)
-      applyOperationToTextarea(textareaEl, content, res.text, res.start, res.end)
-    } catch {
-      showToast('保存图片失败')
-    }
-  }, [note, content, textareaEl, showToast])
-
-  const handlePreviewContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setContextMenuState({
-      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
-      mode: 'preview',
-      selection: null,
-    })
-  }, [])
-
-  const handleLivePreviewContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setContextMenuState({
-      anchorRect: DOMRect.fromRect({ width: 0, height: 0, x: e.clientX, y: e.clientY }),
-      mode: 'preview',
-      selection: null,
-    })
-  }, [])
-
   const handleExport = async (exportMode: ExportMode) => {
     if (!note) return
     try {
@@ -414,7 +382,7 @@ export default function NoteEditor() {
   }
 
   return (
-    <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative' }}>
+    <div ref={rootRef} className="flex flex-col h-full gap-3" style={{ position: 'relative', paddingTop: 8 }}>
       <ToastContainer />
 
       {/* Toolbar */}
@@ -424,6 +392,7 @@ export default function NoteEditor() {
             if (tocVisible) {
               setTocVisible(false)
             }
+            useNoteStore.getState().deactivateTab()
             navPush({ panel: 'notes', subView: 'list' })
           }}
           whileHover={{ scale: 1.08 }}

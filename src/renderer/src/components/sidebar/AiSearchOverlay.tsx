@@ -23,10 +23,13 @@ export default function AiSearchOverlay() {
   useEffect(() => {
     if (!isOpen) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAiSearchOpen(false)
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setAiSearchOpen(false)
+      }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
   }, [isOpen, setAiSearchOpen])
 
   return (

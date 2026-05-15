@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Component, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import Sidebar from '@/components/sidebar/Sidebar'
 import PetModeView from '@/components/pet/PetModeView'
@@ -8,6 +8,25 @@ import { usePanelMorph } from '@/hooks/usePanelMorph'
 import { useTimer } from '@/hooks/useTimer'
 import { usePetStore } from '@/stores/petStore'
 import { fs, windowApi } from '@/lib/ipc'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, color: '#ff6b6b', fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+          {this.state.error.toString()}
+          {'\n\n'}
+          {this.state.error.stack}
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 function QuickCapture() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -200,7 +219,9 @@ export default function App() {
 
   return (
     <div className="w-full h-full">
-      <Sidebar />
+      <ErrorBoundary>
+        <Sidebar />
+      </ErrorBoundary>
     </div>
   )
 }

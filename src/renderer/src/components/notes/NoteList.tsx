@@ -137,7 +137,10 @@ export default function NoteList() {
                       onChange={(e) => setRenameValue(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleRenameConfirm()
-                        if (e.key === 'Escape') setRenamingTag(null)
+                        if (e.key === 'Escape') {
+                          e.stopPropagation()
+                          setRenamingTag(null)
+                        }
                       }}
                       style={{
                         width: 60,

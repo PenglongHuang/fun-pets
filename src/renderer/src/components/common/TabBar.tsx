@@ -69,8 +69,6 @@ export default function TabBar({
         style={{
           gap: 2,
           padding: '4px 4px 0',
-          background: 'rgba(18, 18, 42, 0.6)',
-          borderRadius: '8px 8px 0 0',
           overflowX: 'auto',
           scrollbarWidth: 'none',
         }}
@@ -92,6 +90,7 @@ export default function TabBar({
                 }} />
               )}
               <button
+                title={tab.title}
                 onClick={() => onSelect(tab.id)}
                 onContextMenu={handleContextMenu(tab.id)}
                 draggable
@@ -101,7 +100,7 @@ export default function TabBar({
                 onDragEnd={handleDragEnd}
                 style={{
                   padding: '7px 12px',
-                  borderRadius: '6px 6px 0 0',
+                  borderRadius: '0 0 6px 6px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -111,9 +110,9 @@ export default function TabBar({
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: 12,
-                  minWidth: 'fit-content',
+                  minWidth: 0,
                   opacity: isDragging ? 0.4 : 1,
-                  borderBottom: isActive ? '2px solid #0A84FF' : '2px solid transparent',
+                  borderTop: isActive ? '2px solid #0A84FF' : '2px solid transparent',
                   transition: 'background 0.15s ease, color 0.15s ease',
                   maxWidth: 160,
                   overflow: 'hidden',
@@ -127,7 +126,7 @@ export default function TabBar({
                 }}
               >
                 {tab.pinned && <Pin size={11} style={{ flexShrink: 0, color: '#0A84FF' }} />}
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.title}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flex: '1 1 0' }}>{tab.title}</span>
                 {!tab.pinned && isActive && (
                   <span
                     onClick={(e) => { e.stopPropagation(); handleClose(tab.id) }}

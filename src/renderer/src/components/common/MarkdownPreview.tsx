@@ -10,7 +10,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import xml from 'highlight.js/lib/languages/xml'
 import markdown from 'highlight.js/lib/languages/markdown'
 import { imageApi } from '@/lib/ipc'
-import { parseLinks, replaceLinksWithHtml } from '@/lib/link-parser'
+import { parseLinks, replaceLinksWithHtml, maskCodeBlocks, escapeRawAngles } from '@/lib/link-parser'
 import { resolveLinks } from '@/lib/link-resolver'
 
 hljs.registerLanguage('javascript', javascript)
@@ -60,15 +60,20 @@ export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: Ma
 
   const [resolvedLinkMap, setResolvedLinkMap] = useState<Map<string, any>>(new Map())
 
+  const { masked: maskedContent, restore: restoreCodeBlocks } = useMemo(
+    () => maskCodeBlocks(content),
+    [content],
+  )
+
   useEffect(() => {
-    const links = parseLinks(content)
+    const links = parseLinks(maskedContent)
     if (links.length === 0) {
       setResolvedLinkMap(new Map())
       return
     }
     const ids = Array.from(new Set(links.map(l => l.id)))
     resolveLinks(ids).then(setResolvedLinkMap)
-  }, [content])
+  }, [maskedContent])
 
   useEffect(() => {
     if (!mdFilePath || imageRefs.length === 0) {
@@ -120,24 +125,27 @@ export default function MarkdownPreview({ content, mdFilePath, onLinkClick }: Ma
   }, [imageMap])
 
   const processedContent = useMemo(() => {
-    if (resolvedLinkMap.size === 0) return content
-    return replaceLinksWithHtml(content, resolvedLinkMap)
-  }, [content, resolvedLinkMap])
+    const linkReplaced = resolvedLinkMap.size === 0
+      ? maskedContent
+      : replaceLinksWithHtml(maskedContent, resolvedLinkMap)
+    return restoreCodeBlocks(linkReplaced)
+  }, [maskedContent, resolvedLinkMap, restoreCodeBlocks])
 
   const html = useMemo(() => {
     marked.use({ renderer, gfm: true, breaks: true })
-    return marked.parse(processedContent, { async: false }) as string
+    return marked.parse(escapeRawAngles(processedContent), { async: false }) as string
   }, [processedContent, renderer])
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest('.wikilink') as HTMLElement | null
     if (!target) return
     const id = target.dataset.linkId
+    if (!id) return
+    e.preventDefault()
+    e.stopPropagation()
     const type = target.dataset.linkType
-    if (id && type && onLinkClick) {
-      e.preventDefault()
-      e.stopPropagation()
-      onLinkClick(id, type)
+    if (onLinkClick) {
+      onLinkClick(id, type || 'deleted')
     }
   }, [onLinkClick])
 

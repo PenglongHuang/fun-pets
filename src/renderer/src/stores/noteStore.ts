@@ -37,6 +37,7 @@ interface NoteStore {
   openTab: (id: string) => void
   closeTab: (id: string) => void
   switchTab: (id: string) => void
+  deactivateTab: () => void
   pinTab: (id: string) => void
   reorderTabs: (fromIdx: number, toIdx: number) => void
   closeOtherTabs: (id: string) => void
@@ -282,6 +283,11 @@ export const useNoteStore = create<NoteStore>()(
       const { tabs } = get()
       if (!tabs.some((t) => t.id === id)) return
       set({ activeTabId: id, activeNoteId: id })
+      persistNotePrefs(get)
+    },
+
+    deactivateTab: () => {
+      set({ activeTabId: null, activeNoteId: null })
       persistNotePrefs(get)
     },
 

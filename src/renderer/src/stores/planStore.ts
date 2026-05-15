@@ -79,6 +79,7 @@ interface PlanStore {
   openTab: (id: string) => void
   closeTab: (id: string) => void
   switchTab: (id: string) => void
+  deactivateTab: () => void
   pinTab: (id: string) => void
   reorderTabs: (fromIdx: number, toIdx: number) => void
   closeOtherTabs: (id: string) => void
@@ -350,6 +351,11 @@ export const usePlanStore = create<PlanStore>()(
       const { tabs } = get()
       if (!tabs.some((t) => t.id === id)) return
       set({ activeTabId: id, activePlanId: id })
+      persistPlanPrefs(get)
+    },
+
+    deactivateTab: () => {
+      set({ activeTabId: null, activePlanId: null })
       persistPlanPrefs(get)
     },
 

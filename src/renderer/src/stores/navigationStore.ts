@@ -44,10 +44,10 @@ function restoreState(entry: NavigationEntry) {
   switch (entry.panel) {
     case 'planner':
       if (entry.subView === 'list') {
-        planStore.setActivePlan(null)
+        planStore.deactivateTab()
         planStore.setPlannerView('list')
       } else if (entry.subView === 'calendar') {
-        planStore.setActivePlan(null)
+        planStore.deactivateTab()
         planStore.setPlannerView('calendar')
       } else if (entry.subView === 'editor') {
         const exists = planStore.plans.some((p) => p.id === entry.planId)
@@ -62,7 +62,7 @@ function restoreState(entry: NavigationEntry) {
       break
     case 'notes':
       if (entry.subView === 'list') {
-        noteStore.setActiveNote(null)
+        noteStore.deactivateTab()
       } else if (entry.subView === 'editor') {
         const exists = noteStore.notes.some((n) => n.id === entry.noteId)
         if (exists) {
