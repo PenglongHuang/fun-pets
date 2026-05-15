@@ -115,7 +115,7 @@ export const useTimerStore = create<TimerStore>()(
       }
     },
 
-    tick: () => {
+    _completePhase: () => {
       const { phase, round, totalMs, remainingMs, pendingPlanId } = get()
       const settings = useSettingsStore.getState().pomodoro
 
