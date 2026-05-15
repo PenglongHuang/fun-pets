@@ -95,10 +95,9 @@ export const useTimerStore = create<TimerStore>()(
     reset: () => {
       set((s) => { s.status = 'idle'; s.remainingMs = 0; s.totalMs = 0; s._persistVersion++ })
       usePetStore.getState().setState('smile')
+      usePetStore.getState().setTimerBubblePinned(false)
       get()._persist()
     },
-
-    tick: () => {
       const { status, remainingMs, _lastTickAt } = get()
       if (status !== 'running') return
       const now = Date.now()
@@ -137,6 +136,7 @@ export const useTimerStore = create<TimerStore>()(
       }
 
       usePetStore.getState().setState('doubleWink')
+      usePetStore.getState().setTimerBubblePinned(false)
       fireConfetti()
       notify.show('FunBuddy', phase === 'focus' ? '专注完成！休息一下吧' : '休息结束，继续加油！')
 
