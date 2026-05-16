@@ -126,7 +126,7 @@ export default function PetAvatar({ size = 100, onClick, className = '', showTim
 
   return (
     <div
-      style={{ position: 'relative', overflow: 'visible', paddingBottom: showTimerBubble ? 40 : 0 }}
+      style={{ position: 'relative', overflow: 'visible' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -345,6 +345,7 @@ function FocusBubble({ size }: { size: number }) {
   const remainingMs = useTimerStore((s) => s.remainingMs)
   const totalMs = useTimerStore((s) => s.totalMs)
   const phase = useTimerStore((s) => s.phase)
+  const timerStatus = useTimerStore((s) => s.status)
   const progress = totalMs > 0 ? remainingMs / totalMs : 1
   const timeStr = formatTime(remainingMs)
   const R = 17
@@ -354,7 +355,10 @@ function FocusBubble({ size }: { size: number }) {
   const ringPx = above ? 44 : 34
   const cx = 26
   const vb = cx * 2
-  const colors = PHASE_COLORS[phase]
+  const phaseColors = PHASE_COLORS[phase]
+  const colors = timerStatus === 'paused'
+    ? { stroke: '#9E9E9E', bg: 'rgba(158,158,158,0.25)', text: '#616161' }
+    : phaseColors
 
   return (
     <div
@@ -434,6 +438,7 @@ function ActionBubble() {
 
   return (
     <div
+      onMouseDown={(e) => e.stopPropagation()}
       style={{
         position: 'absolute',
         top: '100%',
